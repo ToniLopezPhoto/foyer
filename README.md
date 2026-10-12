@@ -70,7 +70,7 @@ Foyer requires **Obsidian 1.8.7 or newer**.
 
 ### Using BRAT
 
-The simplest way to try Foyer while it is not yet available in the Community Plugins directory:
+BRAT is an alternative way to install Foyer directly from GitHub, including while its directory review is pending:
 
 1. Install [BRAT](https://github.com/TfTHacker/obsidian42-brat) from Obsidian's Community Plugins.
 2. Run **BRAT: Add a beta plugin for testing** from the command palette.
@@ -84,9 +84,11 @@ The simplest way to try Foyer while it is not yet available in the Community Plu
 3. Create the folder `.obsidian/plugins/foyer/` inside your vault.
 4. Place the three files in that folder, reload Obsidian, and enable **Foyer** in Community plugins.
 
-### Community Plugins directory
+### Obsidian Community directory
 
-A directory listing is planned. Until Foyer is accepted, install it using BRAT or manually.
+Foyer has a [public listing in the Obsidian Community directory](https://community.obsidian.md/plugins/foyer). Once its release passes the directory's automated review, you can install it directly from Obsidian's **Settings → Community plugins → Browse** by searching for **Foyer**.
+
+If the listing's **Add to Obsidian** button does not work yet, the review or directory synchronization may still be pending. In the meantime, use BRAT or install the release manually as described above.
 
 ## Personalization
 
@@ -133,7 +135,7 @@ Issues, bug reports, and pull requests are welcome via [GitHub Issues](https://g
 - **Un inicio personal:** saludo según la hora del día, nombre opcional e imagen de cabecera a tu elección.
 - **Integración natural:** hereda colores y tipografías del tema de Obsidian, funciona en escritorio y móvil, y no necesita conexión a Internet.
 
-**Instalación:** utiliza [BRAT](https://github.com/TfTHacker/obsidian42-brat) e introduce `ToniLopezPhoto/foyer`, o descarga `main.js`, `manifest.json` y `styles.css` de la [última versión](https://github.com/ToniLopezPhoto/foyer/releases/latest) y colócalos en `.obsidian/plugins/foyer/`.
+**Instalación:** Foyer ya tiene [ficha pública en el directorio de Obsidian](https://community.obsidian.md/plugins/foyer). La instalación directa estará disponible cuando supere la revisión automática. Mientras tanto, utiliza [BRAT](https://github.com/TfTHacker/obsidian42-brat) e introduce `ToniLopezPhoto/foyer`, o descarga `main.js`, `manifest.json` y `styles.css` de la [última versión](https://github.com/ToniLopezPhoto/foyer/releases/latest) y colócalos en `.obsidian/plugins/foyer/`.
 
 Los ajustes y el historial de apertura se almacenan únicamente en tu vault. Foyer no recopila telemetría ni envía datos a servicios externos.
 
