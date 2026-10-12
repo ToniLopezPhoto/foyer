@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="520" viewBox="0 0 1440 520" role="img" aria-labelledby="title desc">
+  <title id="title">Foyer — A quieter way into Obsidian</title>
+  <desc id="desc">Editorial dark cover for Foyer, featuring a minimal wordmark and an abstract architectural doorway.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#15161B"/><stop offset="1" stop-color="#25232B"/></linearGradient>
+    <linearGradient id="frame" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#E3D9EE" stop-opacity=".8"/><stop offset="1" stop-color="#9285B0" stop-opacity=".13"/></linearGradient>
+    <linearGradient id="door" x1="0" y1="0" x2="0.8" y2="1"><stop stop-color="#837596" stop-opacity=".25"/><stop offset=".6" stop-color="#CAB9DF" stop-opacity=".12"/><stop offset="1" stop-color="#DED1E6" stop-opacity=".6"/></linearGradient>
+    <radialGradient id="light"><stop stop-color="#C5ACDD" stop-opacity=".23"/><stop offset="1" stop-color="#C5ACDD" stop-opacity="0"/></radialGradient>
+    <pattern id="grain" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M0 39H40M39 0V40" stroke="#FFFFFF" stroke-opacity=".025" stroke-width="1"/></pattern>
+  </defs>
+  <rect width="1440" height="520" fill="url(#bg)"/>
+  <rect width="1440" height="520" fill="url(#grain)"/>
+  <circle cx="1130" cy="315" r="310" fill="url(#light)"/>
+  <path d="M101 94H255" stroke="#B6A7CD" stroke-width="2"/>
+  <text x="100" y="133" fill="#BEB4C9" font-size="16" letter-spacing="5" font-family="Arial, Helvetica, sans-serif">AN OBSIDIAN START PAGE</text>
+  <text x="94" y="287" fill="#FAF8F5" font-size="158" letter-spacing="-10" font-weight="600" font-family="Arial, Helvetica, sans-serif">foyer<tspan fill="#C9ADD9">.</tspan></text>
+  <text x="102" y="354" fill="#F1ECF0" font-size="31" font-family="Arial, Helvetica, sans-serif">A quieter way into Obsidian.</text>
+  <text x="104" y="405" fill="#B7B0BB" font-size="17" letter-spacing="1.4" font-family="Arial, Helvetica, sans-serif">SEARCH  /  RESUME  /  BEGIN</text>
+  <path d="M885 454H1353" stroke="#E1D9E7" stroke-opacity=".18"/>
+  <path d="M914 454V256A203 203 0 0 1 1320 256V454" fill="none" stroke="url(#frame)" stroke-opacity=".40" stroke-width="1.6"/>
+  <path d="M951 454V259A166 166 0 0 1 1283 259V454" fill="none" stroke="url(#frame)" stroke-opacity=".68" stroke-width="2"/>
+  <path d="M989 454V263A128 128 0 0 1 1245 263V454Z" fill="url(#door)" stroke="#C8B9D4" stroke-opacity=".63" stroke-width="1.5"/>
+  <path d="M1024 454V268A93 93 0 0 1 1210 268V454" fill="none" stroke="#E5D7EF" stroke-opacity=".55" stroke-width="1.6"/>
+  <path d="M1060 454V290A57 57 0 0 1 1174 290V454Z" fill="#18161E" stroke="#E1D6E8" stroke-opacity=".58" stroke-width="1.6"/>
+  <path d="M1117 353V454" stroke="#E4D5EB" stroke-opacity=".28"/>
+  <path d="M1115 451L1008 503M1119 451L1264 503" stroke="#BCACCD" stroke-opacity=".10"/>
+  <text x="1345" y="486" fill="#A7A0AC" font-size="13" text-anchor="end" letter-spacing="3" font-family="Arial, Helvetica, sans-serif">FOYER / 01</text>
+</svg>

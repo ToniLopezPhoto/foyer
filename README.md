@@ -1,138 +1,142 @@
-# Foyer
-
 <p align="center">
-  <img src="https://raw.githubusercontent.com/ToniLopezPhoto/foyer/main/manifest.json" width="0" height="0" alt="" />
-  <em>A beautiful, minimal start page for your notes.</em>
+  <img src="assets/foyer-banner.svg" alt="Foyer — A quieter way into Obsidian" width="100%">
 </p>
 
 <p align="center">
-  <a href="https://github.com/ToniLopezPhoto/foyer/releases/latest"><img src="https://img.shields.io/github/v/release/ToniLopezPhoto/foyer?color=7c3aed&label=Release&style=flat-square" alt="Latest Release"></a>
-  <a href="https://github.com/obsidianmd/obsidian-releases"><img src="https://img.shields.io/badge/Obsidian-%E2%89%A5%201.8.7-purple?style=flat-square" alt="Obsidian Version"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="License"></a>
-  <a href="#español"><img src="https://img.shields.io/badge/Idioma-ES%20%2F%20EN-emerald?style=flat-square" alt="Languages"></a>
+  <strong>Your notes, one quiet starting point.</strong><br>
+  A minimal, personal home screen for <a href="https://obsidian.md/">Obsidian</a>.
+  Open a new tab, find what matters, and pick up where you left off.
+</p>
+
+<p align="center">
+  <a href="https://github.com/ToniLopezPhoto/foyer/releases/latest">Download</a>
+  &nbsp;·&nbsp;
+  <a href="#installation">Installation</a>
+  &nbsp;·&nbsp;
+  <a href="#features">Features</a>
+  &nbsp;·&nbsp;
+  <a href="#español">Español</a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/ToniLopezPhoto/foyer/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/ToniLopezPhoto/foyer?style=flat-square&color=77717e"></a>
+  <img alt="Obsidian 1.8.7 or newer" src="https://img.shields.io/badge/Obsidian-1.8.7%2B-77717e?style=flat-square">
+  <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/License-MIT-77717e?style=flat-square"></a>
 </p>
 
 ---
 
-**Foyer** transforms your new tabs and vault startup into an inviting, distraction-free foyer. Search instantly across your entire vault, pick up right where you left off with accurate last-opened tracking, and greet each session with warmth and focus.
+Most start pages want to be a dashboard. **Foyer is simply a place to begin.**
 
-> 🇪🇸 **[Leer resumen en español](#español)**
+It replaces Obsidian's empty new tabs with a welcoming space that feels like a natural part of your vault. There are no widgets to configure, no feeds to follow, and no extra services to connect: just search, recently opened notes, and a little room to breathe.
 
----
+<p align="center">
+  <img src="assets/foyer-preview.svg" alt="Illustrative Foyer interface showing search, greeting and recent notes in dark and light themes" width="100%">
+</p>
+<p align="center"><sub>Interface illustration, not an application screenshot. Foyer inherits the colors and typography of your active Obsidian theme.</sub></p>
 
-## ✨ Features
+## Features
 
-- 🔍 **Instant Fuzzy Search**
-  Search titles and relative paths seamlessly with keyboard-first ergonomics.
-  - `↵` to open immediately.
-  - `Ctrl` / `Cmd` + `↵` to open in a new split tab.
-  - `Shift` + `↵` to launch core full-text search across content.
-  - Quick note creation when no exact title exists (honors your vault’s *Default location for new notes*).
+### Find a thought, instantly
 
-- 🕒 **True Recent History**
-  Tracks when you *actually opened* your notes (not just when they were last modified on disk).
-  - Relative live timestamps (*"5 minutes ago"*).
-  - Automatically updates every 30 seconds while open.
-  - Intelligently survives file renames, folder moves, and deletions.
+Search note titles and file paths with fuzzy matching. Use the keyboard to move between matches, open a note, search within content, or create a new note directly from a query.
 
-- 🌅 **Adaptive Greeting & Time-of-Day Context**
-  Dynamic greetings tailored to morning, afternoon, or evening, with an optional customizable user name and localized calendar dates.
+### Continue where you left off
 
-- 🖼️ **Hero Image or Ambient Accent Spark**
-  - **Upload from Computer**: Select any image from your computer; Foyer imports it safely into your vault's attachment directory.
-  - **Vault Picker**: Choose an existing image within your notes.
-  - Supports PNG, JPEG, GIF, WebP, AVIF, and BMP.
-  - Interactive live preview & layout infographic right inside settings.
-  - Fallback to an elegant theme-accented geometric spark when no image is selected.
+Your recent notes reflect **when you actually opened them**, not when they were last edited. Relative timestamps stay fresh while Foyer is open, and history follows notes when you rename or move them.
 
-- 🎨 **100% Theme-Native**
-  Constructed strictly with Obsidian CSS variables. Inherits typography, contrast levels, and accents effortlessly across Light/Dark modes and custom themes (Minimal, AnuPpuccin, etc.).
+### Make the space yours
 
----
+A greeting changes with the time of day and can include your name. Add a personal image from your vault or upload one from your computer; leave it unset for a small accent-colored symbol instead.
 
-## 🛠️ Settings & Customization
+### Fit right into Obsidian
 
-| Option | Description |
-| :--- | :--- |
-| **Greeting Name** | Displayed alongside the greeting (e.g. *"Good morning, Toni"*). Leave empty for clean impersonal greetings. |
-| **Language** | Choose between `Automatic (Obsidian)`, `Español`, or `English`. |
-| **Hero Image** | Upload directly or choose from vault. An intuitive visual miniature mock-up illustrates how it renders on your homepage. |
+Foyer uses the active theme's colors and typography, works in light and dark modes, and supports English and Spanish. It opens at startup and fills otherwise empty new tabs. Desktop and mobile are supported.
 
----
+## Keyboard shortcuts
 
-## 📦 Installation
+| Shortcut | Action |
+| --- | --- |
+| `↑` / `↓` | Move through search results |
+| `Enter` | Open the selected note |
+| `Ctrl/Cmd + Enter` | Open in a new tab |
+| `Shift + Enter` | Search note content with Obsidian's core Search plugin |
 
-### Option 1: Community Plugins (*Pending submission*)
-Once accepted into the Obsidian Community Plugins directory:
-1. Open **Obsidian Settings** → **Community plugins**.
-2. Turn off *Restricted mode*.
-3. Click **Browse** and search for **Foyer**.
-4. Click **Install**, then **Enable**.
+If your query does not match an existing note, Foyer also offers to create it in your vault's configured default location for new notes.
 
-### Option 2: Via BRAT (Testing & Instant Updates)
-1. Install the [Obsidian42 - BRAT](https://github.com/TfTHacker/obsidian42-brat) plugin.
-2. In Obsidian, open the command palette (`Ctrl/Cmd + P`) and run:
-   ```text
-   BRAT: Add a beta plugin for testing
-   ```
-3. Enter repository URL: `ToniLopezPhoto/foyer`
-4. Confirm installation, then enable **Foyer** in **Community plugins**.
+## Installation
 
-### Option 3: Manual Installation
-1. Go to the [Latest Release](https://github.com/ToniLopezPhoto/foyer/releases/latest).
+Foyer requires **Obsidian 1.8.7 or newer**.
+
+### Using BRAT
+
+The simplest way to try Foyer while it is not yet available in the Community Plugins directory:
+
+1. Install [BRAT](https://github.com/TfTHacker/obsidian42-brat) from Obsidian's Community Plugins.
+2. Run **BRAT: Add a beta plugin for testing** from the command palette.
+3. Enter `ToniLopezPhoto/foyer`.
+4. Enable **Foyer** in **Settings → Community plugins**.
+
+### Manual installation
+
+1. Open the [latest release](https://github.com/ToniLopezPhoto/foyer/releases/latest).
 2. Download `main.js`, `manifest.json`, and `styles.css`.
-3. Create a folder named `foyer` in your vault at `.obsidian/plugins/foyer/`.
-4. Place the downloaded files into that directory.
-5. Reload Obsidian and toggle **Foyer** on in **Community plugins**.
+3. Create the folder `.obsidian/plugins/foyer/` inside your vault.
+4. Place the three files in that folder, reload Obsidian, and enable **Foyer** in Community plugins.
 
-> **Compatibility**: Requires Obsidian `v1.8.7` or higher. Fully compatible with Desktop & Mobile.
+### Community Plugins directory
 
----
+A directory listing is planned. Until Foyer is accepted, install it using BRAT or manually.
 
-## 🔒 Privacy & Local Philosophy
+## Personalization
 
-Foyer is proudly local-first:
-- **Zero Network Traffic**: No external requests, telemetry, or third-party analytics.
-- **Local Storage**: Preferences and open timestamps are maintained strictly inside your local `.obsidian/plugins/foyer/data.json`.
-- **Vault Security**: Uploaded images stay entirely within your local vault storage.
+Open **Settings → Community plugins → Foyer** to adjust:
 
----
+| Setting | What it does |
+| --- | --- |
+| Greeting name | Adds your name to the greeting; optional |
+| Language | Follows Obsidian automatically, or uses English or Spanish |
+| Hero image | Selects an existing vault image or imports one into your attachments folder |
 
-## 💻 Development
+The hero image supports PNG, JPEG, GIF, WebP, AVIF, and BMP. Its position is shown in the settings preview. Without an image, Foyer displays a subtle symbol in your theme's accent color.
 
-Foyer is cleanly architected in modern Vanilla JavaScript and CSS with no heavy compilation dependencies.
+## Privacy, by design
+
+Foyer runs locally. It makes no network requests, includes no analytics, and does not send your notes or preferences anywhere.
+
+Settings and a small, local last-opened history (up to 200 entries) are saved in `.obsidian/plugins/foyer/data.json` inside your vault. Images you import stay in your vault as well.
+
+## Development and contributions
+
+Foyer is intentionally lightweight: plain JavaScript and CSS, with no build step or runtime dependencies beyond Obsidian.
 
 ```bash
-# Clone directly into your test vault
+# From your test vault
 git clone https://github.com/ToniLopezPhoto/foyer.git .obsidian/plugins/foyer
 
-# Validate syntax
-node --check main.js
+# Check JavaScript syntax
+node --check .obsidian/plugins/foyer/main.js
 ```
 
-### Creating Releases
-1. Bump `"version"` in `manifest.json` and append to `versions.json`.
-2. Commit and push a tag matching the version string:
-   ```bash
-   git tag 1.0.0
-   git push origin 1.0.0
-   ```
-3. GitHub Actions builds the verified draft release with release assets ready for publishing.
+After changing the plugin, reload it in Obsidian to test. Please keep contributions dependency-free and theme-native, using Obsidian's CSS variables for appearance.
+
+Issues, bug reports, and pull requests are welcome via [GitHub Issues](https://github.com/ToniLopezPhoto/foyer/issues).
 
 ---
 
-## 🇪🇸 Español
+## Español
 
-**Foyer** es una página de inicio minimalista, elegante y nativa para Obsidian:
-- ⚡ **Búsqueda difusa ultrarrápida**: Navegación ágil por teclado (`↵` abrir, `Ctrl/Cmd + ↵` nueva pestaña, `Shift + ↵` búsqueda global).
-- 🕒 **Historial real de notas recientes**: Muestra cuándo abriste una nota por última vez (no solo cuándo se editó el archivo), adaptándose a cambios de nombre y carpetas.
-- 🌅 **Saludo contextual**: Se adapta a la hora del día (mañana, tarde, noche) con tu nombre opcional y fecha en tu idioma.
-- 🖼️ **Imagen de cabecera**: Sube una foto desde tu ordenador con un solo clic o elígela de tu vault, con previsualización maquetada en ajustes.
-- 🎨 **100% integrado**: Utiliza exclusivamente las variables CSS de Obsidian, luciendo perfecto en cualquier tema (modo claro u oscuro).
+**Foyer** es una página de inicio minimalista para Obsidian. Sustituye las pestañas vacías por un espacio personal desde el que puedes buscar tus notas y retomar tu trabajo sin distracciones.
 
----
+- **Búsqueda rápida:** encuentra notas por nombre o ruta, navega con el teclado y crea notas nuevas cuando lo necesites.
+- **Recientes de verdad:** muestra las notas que has abierto, con tiempos relativos independientes de la última modificación del archivo.
+- **Un inicio personal:** saludo según la hora del día, nombre opcional e imagen de cabecera a tu elección.
+- **Integración natural:** hereda colores y tipografías del tema de Obsidian, funciona en escritorio y móvil, y no necesita conexión a Internet.
 
-## 📄 License
+**Instalación:** utiliza [BRAT](https://github.com/TfTHacker/obsidian42-brat) e introduce `ToniLopezPhoto/foyer`, o descarga `main.js`, `manifest.json` y `styles.css` de la [última versión](https://github.com/ToniLopezPhoto/foyer/releases/latest) y colócalos en `.obsidian/plugins/foyer/`.
 
-Distributed under the [MIT License](LICENSE).  
-Created with care by [Toni López](https://github.com/ToniLopezPhoto).
+Los ajustes y el historial de apertura se almacenan únicamente en tu vault. Foyer no recopila telemetría ni envía datos a servicios externos.
+
+## License
+
+Foyer is released under the [MIT License](LICENSE). Created by [Toni López](https://github.com/ToniLopezPhoto).

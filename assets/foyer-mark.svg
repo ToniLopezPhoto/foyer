@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+ <title id="title">Foyer mark</title><desc id="desc">Minimal architectural archway symbol for the Foyer Obsidian plugin.</desc>
+ <rect width="256" height="256" rx="56" fill="#1C1B21"/>
+ <path d="M57 204V114A71 71 0 0 1 199 114V204" fill="none" stroke="#8D8399" stroke-width="5"/>
+ <path d="M86 204V117A42 42 0 0 1 170 117V204Z" fill="#2A2732" stroke="#D5C3E2" stroke-width="5"/>
+ <path d="M109 204V131A19 19 0 0 1 147 131V204Z" fill="#CDB5DA"/>
+ <path d="M44 204H212" stroke="#D5C3E2" stroke-width="4" stroke-linecap="round"/>
+ </svg>
