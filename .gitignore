@@ -1,0 +1,17 @@
+# Plugin runtime data (user settings, open history)
+data.json
+
+# Dependencies / build
+node_modules/
+dist/
+*.zip
+
+# OS / editors
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# CodeGraph index
+.codegraph/

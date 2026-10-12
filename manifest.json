@@ -1,0 +1,10 @@
+{
+  "id": "lab-home",
+  "name": "Lab Home",
+  "version": "1.0.0",
+  "minAppVersion": "1.8.7",
+  "description": "A minimal home page: fuzzy search bar, recently opened notes and a customizable greeting and hero image.",
+  "author": "Toni López",
+  "authorUrl": "https://github.com/ToniLopezPhoto",
+  "isDesktopOnly": false
+}
