@@ -1,7 +1,7 @@
 'use strict';
 
 /*
- * Lab Home — página de inicio minimalista para Obsidian.
+ * Foyer — página de inicio minimalista para Obsidian.
  * Barra de búsqueda (fuzzy sobre nombres y rutas) + notas abiertas recientemente.
  * Todo el estilo sale de las variables del tema activo (styles.css).
  */
@@ -167,7 +167,7 @@ function isSafeHeroFileName(name) {
 
 function sanitizeFileName(name) {
   const dot = name.lastIndexOf('.');
-  const base = name.slice(0, dot).replace(/[\\/:*?"<>|#^[\]]/g, ' ').replace(/\s+/g, ' ').trim() || 'lab-home-image';
+  const base = name.slice(0, dot).replace(/[\\/:*?"<>|#^[\]]/g, ' ').replace(/\s+/g, ' ').trim() || 'foyer-image';
   return `${base}.${name.slice(dot + 1).toLowerCase()}`;
 }
 
@@ -232,7 +232,7 @@ function showSparkFallback(imageElement, sparkElement) {
 async function saveSettingAndRefresh(plugin, key, value) {
   plugin.settings = { ...plugin.settings, [key]: value };
   await plugin.saveData(plugin.settings);
-  for (const leaf of plugin.app.workspace.getLeavesOfType('lab-home')) {
+  for (const leaf of plugin.app.workspace.getLeavesOfType('foyer')) {
     leaf.view?.refreshSettings?.();
   }
 }
@@ -311,7 +311,7 @@ const {
   sanitizeFileName,
 } = homeSettingsModule.exports;
 
-const VIEW_TYPE = 'lab-home';
+const VIEW_TYPE = 'foyer';
 
 /* ── Configuración ───────────────────────────────────────────── */
 const CONFIG = {
@@ -386,26 +386,26 @@ class HomeView extends ItemView {
   async onOpen() {
     const root = this.contentEl;
     root.empty();
-    root.addClass('lab-home');
+    root.addClass('foyer');
 
-    this.wrapEl = root.createDiv('lab-home__wrap');
+    this.wrapEl = root.createDiv('foyer__wrap');
 
     // Cabecera
-    const hero = this.wrapEl.createDiv('lab-home__hero');
-    this.sparkEl = hero.createDiv('lab-home__spark');
+    const hero = this.wrapEl.createDiv('foyer__hero');
+    this.sparkEl = hero.createDiv('foyer__spark');
     this.sparkEl.appendChild(buildSpark());
-    this.heroImageEl = hero.createEl('img', { cls: 'lab-home__image', attr: { alt: '' } });
+    this.heroImageEl = hero.createEl('img', { cls: 'foyer__image', attr: { alt: '' } });
     this.heroImageEl.hidden = true;
     this.registerDomEvent(this.heroImageEl, 'error', () => this.showSpark());
-    this.dateEl = hero.createDiv('lab-home__date');
-    this.titleEl = hero.createEl('h1', { cls: 'lab-home__title' });
+    this.dateEl = hero.createDiv('foyer__date');
+    this.titleEl = hero.createEl('h1', { cls: 'foyer__title' });
 
     // Búsqueda
-    const search = this.wrapEl.createDiv('lab-home__search');
-    const box = search.createDiv('lab-home__box');
-    setIcon(box.createSpan('lab-home__search-icon'), 'search');
+    const search = this.wrapEl.createDiv('foyer__search');
+    const box = search.createDiv('foyer__box');
+    setIcon(box.createSpan('foyer__search-icon'), 'search');
     this.inputEl = box.createEl('input', {
-      cls: 'lab-home__input',
+      cls: 'foyer__input',
       type: 'text',
       attr: {
         placeholder: '',
@@ -414,18 +414,18 @@ class HomeView extends ItemView {
         'aria-label': '',
       },
     });
-    box.createEl('kbd', { cls: 'lab-home__kbd', text: '↵' });
+    box.createEl('kbd', { cls: 'foyer__kbd', text: '↵' });
 
-    this.resultsEl = search.createDiv('lab-home__results');
+    this.resultsEl = search.createDiv('foyer__results');
 
-    const help = search.createDiv('lab-home__help');
+    const help = search.createDiv('foyer__help');
     this.helpEl = help;
 
     // Recientes
-    const recent = this.wrapEl.createDiv('lab-home__recent');
-    this.recentLabelEl = recent.createDiv('lab-home__section-head')
-      .createSpan({ cls: 'lab-home__label' });
-    this.recentEl = recent.createDiv('lab-home__list');
+    const recent = this.wrapEl.createDiv('foyer__recent');
+    this.recentLabelEl = recent.createDiv('foyer__section-head')
+      .createSpan({ cls: 'foyer__label' });
+    this.recentEl = recent.createDiv('foyer__list');
 
     // Eventos
     this.registerDomEvent(this.inputEl, 'input', () => this.updateResults());
@@ -515,23 +515,23 @@ class HomeView extends ItemView {
     const files = this.getRecentFiles();
     if (!files.length) {
       this.recentEl.createDiv({
-        cls: 'lab-home__empty',
+        cls: 'foyer__empty',
         text: STRINGS[this.plugin.getEffectiveLanguage()].emptyRecent,
       });
       return;
     }
 
     for (const file of files) {
-      const row = this.recentEl.createDiv({ cls: 'lab-home__row', attr: { title: file.path } });
-      setIcon(row.createSpan('lab-home__row-icon'), iconFor(file));
+      const row = this.recentEl.createDiv({ cls: 'foyer__row', attr: { title: file.path } });
+      setIcon(row.createSpan('foyer__row-icon'), iconFor(file));
 
-      const main = row.createDiv('lab-home__row-main');
-      main.createSpan({ cls: 'lab-home__row-title', text: displayName(file) });
+      const main = row.createDiv('foyer__row-main');
+      main.createSpan({ cls: 'foyer__row-title', text: displayName(file) });
       const folder = folderOf(file);
-      if (folder) main.createSpan({ cls: 'lab-home__row-path', text: folder });
+      if (folder) main.createSpan({ cls: 'foyer__row-path', text: folder });
 
       // Hora real de la última apertura (no la de modificación del archivo).
-      const timeEl = row.createSpan({ cls: 'lab-home__row-time' });
+      const timeEl = row.createSpan({ cls: 'foyer__row-time' });
       this.recentTimeEls.push({ el: timeEl, path: file.path });
 
       row.addEventListener('click', (e) => this.openFile(file, Keymap.isModEvent(e)));
@@ -589,23 +589,23 @@ class HomeView extends ItemView {
       (b.file.stat.mtime - a.file.stat.mtime));
 
     for (const m of matches.slice(0, CONFIG.resultLimit)) {
-      const el = this.resultsEl.createDiv('lab-home__item');
-      setIcon(el.createSpan('lab-home__item-icon'), iconFor(m.file));
-      const body = el.createDiv('lab-home__item-body');
-      const title = body.createSpan('lab-home__item-title');
+      const el = this.resultsEl.createDiv('foyer__item');
+      setIcon(el.createSpan('foyer__item-icon'), iconFor(m.file));
+      const body = el.createDiv('foyer__item-body');
+      const title = body.createSpan('foyer__item-title');
       const folder = folderOf(m.file);
 
       if (m.onName) {
         renderMatches(title, m.name, m.match.matches);
-        if (folder) body.createSpan({ cls: 'lab-home__item-path', text: folder });
+        if (folder) body.createSpan({ cls: 'foyer__item-path', text: folder });
       } else {
         title.setText(m.name);
-        renderMatches(body.createSpan('lab-home__item-path'), m.file.path, m.match.matches);
+        renderMatches(body.createSpan('foyer__item-path'), m.file.path, m.match.matches);
       }
       this.addItem(el, (mode) => this.openFile(m.file, mode));
     }
 
-    if (matches.length) this.resultsEl.createDiv('lab-home__divider');
+    if (matches.length) this.resultsEl.createDiv('foyer__divider');
 
     const strings = STRINGS[this.plugin.getEffectiveLanguage()];
     const searchEl = this.actionItem('search', strings.searchContent(query), '⇧ ↵');
@@ -621,10 +621,10 @@ class HomeView extends ItemView {
   }
 
   actionItem(icon, text, hint) {
-    const el = this.resultsEl.createDiv('lab-home__item lab-home__item--action');
-    setIcon(el.createSpan('lab-home__item-icon'), icon);
-    el.createDiv('lab-home__item-body').createSpan({ cls: 'lab-home__item-title', text });
-    if (hint) el.createSpan({ cls: 'lab-home__item-hint', text: hint });
+    const el = this.resultsEl.createDiv('foyer__item foyer__item--action');
+    setIcon(el.createSpan('foyer__item-icon'), icon);
+    el.createDiv('foyer__item-body').createSpan({ cls: 'foyer__item-title', text });
+    if (hint) el.createSpan({ cls: 'foyer__item-hint', text: hint });
     return el;
   }
 
@@ -708,7 +708,7 @@ class HomeView extends ItemView {
       const file = existing instanceof TFile ? existing : await this.app.vault.create(path, '');
       await this.openFile(file, mode);
     } catch (err) {
-      console.error('[lab-home]', err);
+      console.error('[foyer]', err);
       new Notice(STRINGS[this.plugin.getEffectiveLanguage()].createNoteFailed);
     }
   }
@@ -788,7 +788,7 @@ class HomeSettingTab extends PluginSettingTab {
       try {
         await applyImage(await this.plugin.importHeroImage(picked));
       } catch (err) {
-        console.error('[lab-home]', err);
+        console.error('[foyer]', err);
         new Notice(current.imageImportFailed);
       }
     });
@@ -824,16 +824,16 @@ class HomeSettingTab extends PluginSettingTab {
   // Infografía: maqueta en miniatura del inicio con la zona de la imagen resaltada.
   renderImageInfographic(containerEl, strings) {
     const language = this.plugin.getEffectiveLanguage();
-    const info = containerEl.createDiv({ cls: 'lab-home-settings__info' });
+    const info = containerEl.createDiv({ cls: 'foyer-settings__info' });
 
     // Maqueta
-    const mock = info.createDiv({ cls: 'lab-home-settings__mock', attr: { 'aria-hidden': 'true' } });
-    const slot = mock.createDiv({ cls: 'lab-home-settings__slot' });
-    const spark = slot.createDiv({ cls: 'lab-home-settings__spark' });
+    const mock = info.createDiv({ cls: 'foyer-settings__mock', attr: { 'aria-hidden': 'true' } });
+    const slot = mock.createDiv({ cls: 'foyer-settings__slot' });
+    const spark = slot.createDiv({ cls: 'foyer-settings__spark' });
     spark.appendChild(buildSpark());
     const resolved = resolveHeroImage(this.app.vault, this.plugin.settings.heroImagePath, TFile);
     if (resolved) {
-      const image = slot.createEl('img', { cls: 'lab-home-settings__image', attr: { src: resolved.src, alt: '' } });
+      const image = slot.createEl('img', { cls: 'foyer-settings__image', attr: { src: resolved.src, alt: '' } });
       spark.hidden = true;
       slot.addClass('has-image');
       image.addEventListener('error', () => {
@@ -841,40 +841,40 @@ class HomeSettingTab extends PluginSettingTab {
         slot.removeClass('has-image');
       }, { once: true });
     }
-    slot.createSpan({ cls: 'lab-home-settings__tag', text: strings.infoTag });
+    slot.createSpan({ cls: 'foyer-settings__tag', text: strings.infoTag });
 
-    mock.createDiv({ cls: 'lab-home-settings__mock-date', text: formatCalendarDate(moment, language) });
+    mock.createDiv({ cls: 'foyer-settings__mock-date', text: formatCalendarDate(moment, language) });
     mock.createDiv({
-      cls: 'lab-home-settings__mock-title',
+      cls: 'foyer-settings__mock-title',
       text: formatGreeting(language, this.plugin.settings.name, new Date().getHours()),
     });
-    const search = mock.createDiv({ cls: 'lab-home-settings__mock-search' });
+    const search = mock.createDiv({ cls: 'foyer-settings__mock-search' });
     setIcon(search.createSpan(), 'search');
     search.createSpan({ text: strings.searchPlaceholder });
-    const list = mock.createDiv({ cls: 'lab-home-settings__mock-list' });
+    const list = mock.createDiv({ cls: 'foyer-settings__mock-list' });
     for (const width of [70, 52, 61]) {
-      const row = list.createDiv({ cls: 'lab-home-settings__mock-row' });
-      row.createSpan({ cls: 'lab-home-settings__mock-line' }).style.width = `${width}%`;
-      row.createSpan({ cls: 'lab-home-settings__mock-line is-short' });
+      const row = list.createDiv({ cls: 'foyer-settings__mock-row' });
+      row.createSpan({ cls: 'foyer-settings__mock-line' }).style.width = `${width}%`;
+      row.createSpan({ cls: 'foyer-settings__mock-line is-short' });
     }
 
     // Explicación
-    const notes = info.createDiv({ cls: 'lab-home-settings__notes' });
-    notes.createDiv({ cls: 'lab-home-settings__notes-title', text: strings.infoTitle });
+    const notes = info.createDiv({ cls: 'foyer-settings__notes' });
+    notes.createDiv({ cls: 'foyer-settings__notes-title', text: strings.infoTitle });
     const ul = notes.createEl('ul');
     strings.infoPoints.forEach(([icon, text]) => {
       const li = ul.createEl('li');
-      setIcon(li.createSpan({ cls: 'lab-home-settings__notes-icon' }), icon);
+      setIcon(li.createSpan({ cls: 'foyer-settings__notes-icon' }), icon);
       li.createSpan({ text });
     });
     notes.createDiv({
-      cls: 'lab-home-settings__status',
+      cls: 'foyer-settings__status',
       text: resolved ? `${strings.infoCurrent} ${resolved.file.path}` : strings.noImage,
     });
   }
 }
 
-module.exports = class LabHomePlugin extends Plugin {
+module.exports = class FoyerPlugin extends Plugin {
   async onload() {
     await loadSettings(this);
     this.saveHistorySoon = debounce(() => this.saveData(this.settings), 2000, true);
@@ -895,7 +895,7 @@ module.exports = class LabHomePlugin extends Plugin {
     }));
 
     this.registerView(VIEW_TYPE, (leaf) => new HomeView(leaf, this));
-    this.registerHoverLinkSource(VIEW_TYPE, { display: 'Lab Home', defaultMod: true });
+    this.registerHoverLinkSource(VIEW_TYPE, { display: 'Foyer', defaultMod: true });
 
     this.addSettingTab(new HomeSettingTab(this.app, this));
 

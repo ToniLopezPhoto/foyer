@@ -1,86 +1,138 @@
-# Lab Home
+# Foyer
 
-A minimal, theme-native home page for [Obsidian](https://obsidian.md).
-Open it on startup or in every new tab and get straight to your notes: a fuzzy search bar, your recently opened notes and a personal greeting.
+<p align="center">
+  <img src="https://raw.githubusercontent.com/ToniLopezPhoto/foyer/main/manifest.json" width="0" height="0" alt="" />
+  <em>A beautiful, minimal start page for your notes.</em>
+</p>
 
-> 🇪🇸 [Resumen en español](#español) más abajo.
-
-## Features
-
-- **Fuzzy search** over note names and paths, with keyboard navigation.
-  - `↵` open · `Ctrl/⌘ ↵` open in a new tab · `⇧ ↵` search in note contents (core *Search* plugin).
-  - If no note matches exactly, create it right away (it goes to your *Default location for new notes*).
-- **Recent notes** with the real *last opened* time ("5 minutes ago"), kept up to date while the page is open and preserved across renames and moves.
-- **Greeting** that changes with the time of day, optionally with your name.
-- **Hero image**: pick one from your vault or upload it from your computer (it is copied into your attachments folder). Without an image, a small spark in your accent color is shown.
-- **English and Spanish** UI, following Obsidian's language or set manually.
-- **Theme-native**: all styling comes from your theme's CSS variables, so it works in light and dark mode and with any theme.
-- Opens on startup and replaces empty *New tab* pages.
-
-## Settings
-
-| Setting | Description |
-| --- | --- |
-| Greeting name | Name shown after the greeting. Leave it blank for no name. |
-| Language | Automatic (Obsidian's language), Español or English. |
-| Hero image | Upload from your computer or choose from the vault (PNG, JPEG, GIF, WebP, AVIF, BMP). The settings page shows a live preview of where it appears. |
-
-## Installation
-
-### From the community plugins directory
-
-*Coming soon.* Once published: **Settings → Community plugins → Browse**, search for **Lab Home**, install and enable.
-
-### With BRAT (beta)
-
-1. Install [BRAT](https://github.com/TfTHacker/obsidian42-brat).
-2. Run **BRAT: Add a beta plugin for testing** and paste `ToniLopezPhoto/lab-home-obsidian`.
-3. Enable **Lab Home** in **Settings → Community plugins**.
-
-### Manual
-
-1. Download `main.js`, `manifest.json` and `styles.css` from the [latest release](https://github.com/ToniLopezPhoto/lab-home-obsidian/releases/latest).
-2. Copy them to `<your vault>/.obsidian/plugins/lab-home/`.
-3. Reload Obsidian and enable **Lab Home** in **Settings → Community plugins**.
-
-Requires Obsidian **1.8.7** or newer. Works on desktop and mobile.
-
-## Privacy
-
-Lab Home works completely offline. It makes no network requests and collects no telemetry.
-It stores your settings and a local history of when you opened each note (path + timestamp, at most 200 entries) in `.obsidian/plugins/lab-home/data.json` inside your vault. Nothing leaves your device.
-
-## Development
-
-The plugin is plain JavaScript with no build step: `main.js` is the source.
-
-1. Clone this repo into `<test vault>/.obsidian/plugins/lab-home/` (or copy the three files there).
-2. Edit `main.js` / `styles.css` and reload the plugin (disable/enable it, or use the *Hot Reload* plugin).
-3. `node --check main.js` catches syntax errors.
-
-### Releasing
-
-1. Bump `version` in `manifest.json` and add it to `versions.json` (`"<version>": "<minAppVersion>"`).
-2. Commit, then tag with the exact version (no `v` prefix) and push the tag:
-   ```sh
-   git tag 1.0.1 && git push origin 1.0.1
-   ```
-3. GitHub Actions creates a **draft** release with `main.js`, `manifest.json` and `styles.css`. Review it and publish.
-
-## Contributing
-
-Issues and pull requests are welcome. Please keep the plugin dependency-free and theme-native (use Obsidian CSS variables, not hardcoded colors).
-
-## License
-
-[MIT](LICENSE) © Toni López
+<p align="center">
+  <a href="https://github.com/ToniLopezPhoto/foyer/releases/latest"><img src="https://img.shields.io/github/v/release/ToniLopezPhoto/foyer?color=7c3aed&label=Release&style=flat-square" alt="Latest Release"></a>
+  <a href="https://github.com/obsidianmd/obsidian-releases"><img src="https://img.shields.io/badge/Obsidian-%E2%89%A5%201.8.7-purple?style=flat-square" alt="Obsidian Version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="License"></a>
+  <a href="#español"><img src="https://img.shields.io/badge/Idioma-ES%20%2F%20EN-emerald?style=flat-square" alt="Languages"></a>
+</p>
 
 ---
 
-## Español
+**Foyer** transforms your new tabs and vault startup into an inviting, distraction-free foyer. Search instantly across your entire vault, pick up right where you left off with accurate last-opened tracking, and greet each session with warmth and focus.
 
-**Lab Home** es una página de inicio minimalista para Obsidian: barra de búsqueda difusa, notas abiertas recientemente (con la hora real de la última apertura), saludo según la hora del día con tu nombre, e imagen principal que puedes elegir del vault o subir desde tu equipo. La interfaz está en español e inglés y hereda los colores y la tipografía de tu tema.
+> 🇪🇸 **[Leer resumen en español](#español)**
 
-Instalación manual: copia `main.js`, `manifest.json` y `styles.css` de la [última versión](https://github.com/ToniLopezPhoto/lab-home-obsidian/releases/latest) en `<tu vault>/.obsidian/plugins/lab-home/` y actívalo en **Ajustes → Plugins de la comunidad**.
+---
 
-Funciona sin conexión y no envía datos a ningún sitio; solo guarda tus ajustes y el historial de aperturas en `data.json` dentro de tu vault.
+## ✨ Features
+
+- 🔍 **Instant Fuzzy Search**
+  Search titles and relative paths seamlessly with keyboard-first ergonomics.
+  - `↵` to open immediately.
+  - `Ctrl` / `Cmd` + `↵` to open in a new split tab.
+  - `Shift` + `↵` to launch core full-text search across content.
+  - Quick note creation when no exact title exists (honors your vault’s *Default location for new notes*).
+
+- 🕒 **True Recent History**
+  Tracks when you *actually opened* your notes (not just when they were last modified on disk).
+  - Relative live timestamps (*"5 minutes ago"*).
+  - Automatically updates every 30 seconds while open.
+  - Intelligently survives file renames, folder moves, and deletions.
+
+- 🌅 **Adaptive Greeting & Time-of-Day Context**
+  Dynamic greetings tailored to morning, afternoon, or evening, with an optional customizable user name and localized calendar dates.
+
+- 🖼️ **Hero Image or Ambient Accent Spark**
+  - **Upload from Computer**: Select any image from your computer; Foyer imports it safely into your vault's attachment directory.
+  - **Vault Picker**: Choose an existing image within your notes.
+  - Supports PNG, JPEG, GIF, WebP, AVIF, and BMP.
+  - Interactive live preview & layout infographic right inside settings.
+  - Fallback to an elegant theme-accented geometric spark when no image is selected.
+
+- 🎨 **100% Theme-Native**
+  Constructed strictly with Obsidian CSS variables. Inherits typography, contrast levels, and accents effortlessly across Light/Dark modes and custom themes (Minimal, AnuPpuccin, etc.).
+
+---
+
+## 🛠️ Settings & Customization
+
+| Option | Description |
+| :--- | :--- |
+| **Greeting Name** | Displayed alongside the greeting (e.g. *"Good morning, Toni"*). Leave empty for clean impersonal greetings. |
+| **Language** | Choose between `Automatic (Obsidian)`, `Español`, or `English`. |
+| **Hero Image** | Upload directly or choose from vault. An intuitive visual miniature mock-up illustrates how it renders on your homepage. |
+
+---
+
+## 📦 Installation
+
+### Option 1: Community Plugins (*Pending submission*)
+Once accepted into the Obsidian Community Plugins directory:
+1. Open **Obsidian Settings** → **Community plugins**.
+2. Turn off *Restricted mode*.
+3. Click **Browse** and search for **Foyer**.
+4. Click **Install**, then **Enable**.
+
+### Option 2: Via BRAT (Testing & Instant Updates)
+1. Install the [Obsidian42 - BRAT](https://github.com/TfTHacker/obsidian42-brat) plugin.
+2. In Obsidian, open the command palette (`Ctrl/Cmd + P`) and run:
+   ```text
+   BRAT: Add a beta plugin for testing
+   ```
+3. Enter repository URL: `ToniLopezPhoto/foyer`
+4. Confirm installation, then enable **Foyer** in **Community plugins**.
+
+### Option 3: Manual Installation
+1. Go to the [Latest Release](https://github.com/ToniLopezPhoto/foyer/releases/latest).
+2. Download `main.js`, `manifest.json`, and `styles.css`.
+3. Create a folder named `foyer` in your vault at `.obsidian/plugins/foyer/`.
+4. Place the downloaded files into that directory.
+5. Reload Obsidian and toggle **Foyer** on in **Community plugins**.
+
+> **Compatibility**: Requires Obsidian `v1.8.7` or higher. Fully compatible with Desktop & Mobile.
+
+---
+
+## 🔒 Privacy & Local Philosophy
+
+Foyer is proudly local-first:
+- **Zero Network Traffic**: No external requests, telemetry, or third-party analytics.
+- **Local Storage**: Preferences and open timestamps are maintained strictly inside your local `.obsidian/plugins/foyer/data.json`.
+- **Vault Security**: Uploaded images stay entirely within your local vault storage.
+
+---
+
+## 💻 Development
+
+Foyer is cleanly architected in modern Vanilla JavaScript and CSS with no heavy compilation dependencies.
+
+```bash
+# Clone directly into your test vault
+git clone https://github.com/ToniLopezPhoto/foyer.git .obsidian/plugins/foyer
+
+# Validate syntax
+node --check main.js
+```
+
+### Creating Releases
+1. Bump `"version"` in `manifest.json` and append to `versions.json`.
+2. Commit and push a tag matching the version string:
+   ```bash
+   git tag 1.0.0
+   git push origin 1.0.0
+   ```
+3. GitHub Actions builds the verified draft release with release assets ready for publishing.
+
+---
+
+## 🇪🇸 Español
+
+**Foyer** es una página de inicio minimalista, elegante y nativa para Obsidian:
+- ⚡ **Búsqueda difusa ultrarrápida**: Navegación ágil por teclado (`↵` abrir, `Ctrl/Cmd + ↵` nueva pestaña, `Shift + ↵` búsqueda global).
+- 🕒 **Historial real de notas recientes**: Muestra cuándo abriste una nota por última vez (no solo cuándo se editó el archivo), adaptándose a cambios de nombre y carpetas.
+- 🌅 **Saludo contextual**: Se adapta a la hora del día (mañana, tarde, noche) con tu nombre opcional y fecha en tu idioma.
+- 🖼️ **Imagen de cabecera**: Sube una foto desde tu ordenador con un solo clic o elígela de tu vault, con previsualización maquetada en ajustes.
+- 🎨 **100% integrado**: Utiliza exclusivamente las variables CSS de Obsidian, luciendo perfecto en cualquier tema (modo claro u oscuro).
+
+---
+
+## 📄 License
+
+Distributed under the [MIT License](LICENSE).  
+Created with care by [Toni López](https://github.com/ToniLopezPhoto).
