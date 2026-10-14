@@ -683,8 +683,8 @@ class HomeView extends ItemView {
   /* ── Acciones ── */
   async openFile(file, mode) {
     const leaf = mode ? this.app.workspace.getLeaf(mode) : this.leaf;
-    await leaf.openFile(file);
-    this.app.workspace.setActiveLeaf(leaf, { focus: true });
+    // Tab deduplication may redirect this open to an existing leaf.
+    await leaf.openFile(file, { active: true });
   }
 
   openGlobalSearch(query) {
