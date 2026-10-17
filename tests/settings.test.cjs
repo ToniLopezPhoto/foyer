@@ -105,6 +105,7 @@ function createViewFixture(settings) {
   const view = new main.HomeView({}, plugin);
   view.app = {
     vault: { on: () => ({}), getAbstractFileByPath: (path) => byPath.get(path) || null, getFiles: () => files },
+    metadataCache: { on: () => ({}), getFileCache: () => null },
     workspace: {
       on: () => ({}),
       getLastOpenFiles: () => files.map((file) => file.path),
