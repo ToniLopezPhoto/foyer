@@ -106,7 +106,7 @@ The hero image supports PNG, JPEG, GIF, WebP, AVIF, and BMP. Its position is sho
 
 Foyer runs locally. It makes no network requests, includes no analytics, and does not send your notes or preferences anywhere.
 
-Settings and a small, local last-opened history (up to 200 entries) are saved in `.obsidian/plugins/foyer/data.json` inside your vault. Images you import stay in your vault as well.
+Settings are saved in `.obsidian/plugins/foyer/data.json` inside your vault. The small last-opened history (up to 200 entries) stays on this device only, in Obsidian's local storage for this vault. It is kept outside `data.json`, so it is not synced and does not cause sync conflicts. Images you import stay in your vault.
 
 ## Development and contributions
 
