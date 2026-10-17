@@ -1,0 +1,54 @@
+name: CI
+
+# Runs the plugin checks on every push to main and on every pull request,
+# so changes are tested before merging instead of only when a release tag is pushed.
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22, 24]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Syntax check
+        run: node --check main.js
+
+      - name: Manifest and versions.json agree
+        run: |
+          node -e "
+            const m = require('./manifest.json');
+            const v = require('./versions.json');
+            if (v[m.version] !== m.minAppVersion) {
+              console.error('versions.json[' + m.version + '] must equal manifest minAppVersion ' + m.minAppVersion);
+              process.exit(1);
+            }
+          "
+
+      - name: Unit tests
+        run: node --test tests/*.test.cjs
+
+      - name: Whitespace check
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+          git diff --check "origin/${{ github.base_ref }}" HEAD
