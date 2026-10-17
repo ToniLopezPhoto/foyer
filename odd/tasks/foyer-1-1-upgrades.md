@@ -33,7 +33,7 @@ Ship the improvements found in the post-1.0.1 audit: per-device history storage,
 
 - Branch: `feat/foyer-1-1-upgrades` (cut from `main` at `c9ea98c`).
 - One work-unit commit (Conventional Commits) per task, tests and docs alongside the behavior. No push, PR, tag, or release without the user's decision.
-- Forecast: about 900 authored changed lines (above the 400-line slice budget). Delivery strategy: `ask-on-risk`; chain strategy pending user decision before opening any PR.
+- Forecast: about 900 authored changed lines (above the 400-line slice budget). Delivery strategy: `ask-on-risk`; chain strategy `stacked-to-main` (user decision): chained PRs, each based on the previous one, all ending in `main`. Slice boundaries are chosen from real per-task line counts; opening PRs still needs the user's go-ahead.
 - Tasks run sequentially (all touch `main.js`), each in its own Claude session sharing this checkout.
 
 ## Tasks
@@ -95,14 +95,20 @@ Route evidence: every task edits `main.js` plus at most a test file, `styles.css
 - [ ] Bump `manifest.json` and `versions.json` to `1.1.0` (`minAppVersion` unchanged).
 - [ ] README: document every new setting and behavior; add a short "What's new in 1.1" section.
 - [ ] Do not tag or push.
+- [ ] Note-creation hardening from the T1 review (non-blocking advisory findings, accepted as later work):
+  - Skip segments that start with `.` (they would create hidden folders that Foyer itself never lists).
+  - Reuse an existing folder whose name differs only in case instead of creating a near-duplicate (`vault.getAbstractFileByPathInsensitive` when available).
+  - Use one normalization (`parseNoteInput`) for both the "exact match" check in `updateResults` and `createNote`, so "Create note" is not offered for a name that would resolve to an existing note.
+  - Ignore a trailing `/` (and `.md/`) in the typed name.
+  - Strengthen the weak "exact match" assertion in `tests/create-note.test.cjs` and keep test comments in English.
 - Acceptance: release workflow's version check passes locally; all tests pass.
 
 ## Progress
 
 | Task | Status | Commit | Checks | Review |
 |---|---|---|---|---|
-| T1 | done | this commit (see `git log -1`) | `node --test tests/*.test.cjs`: 17/17 pass (RED observed first on 9); `node --check main.js` OK; `git diff --check` OK | not run |
-| T2 | done | this commit (see `git log -1`) | `node --test tests/*.test.cjs`: 33/33 pass (RED observed first on 15: 13 history + 2 `parseNoteInput`); `node --check main.js` OK; `git diff --check` OK | not run |
+| T1 | done | `532754c` | `node --test tests/*.test.cjs`: 17/17 pass (RED observed first on 9); `node --check main.js` OK; `git diff --check` OK | high (workflow shell); consent granted; 4 lenses approved, acknowledged (lineage `review-0e04b31a58d5e840`); 10 advisory findings moved to T7 |
+| T2 | done | `e13b717` | `node --test tests/*.test.cjs`: 33/33 pass (RED observed first on 15: 13 history + 2 `parseNoteInput`); `node --check main.js` OK; `git diff --check` OK; coordinator re-ran tests: 33/33 | medium, under budget (350 lines from `532754c`): pending in slice |
 | T3 | pending | | | |
 | T4 | pending | | | |
 | T5 | pending | | | |
