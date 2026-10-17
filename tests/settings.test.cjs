@@ -150,8 +150,8 @@ test('changing the limits refreshes an open view without reloading', async () =>
 
 /* ── Plugin: startup and live new-tab replacement ── */
 
-function createPluginFixture({ data = null } = {}) {
-  const main = loadMain();
+function createPluginFixture({ data = null, deferDebounce = false } = {}) {
+  const main = loadMain({ deferDebounce });
   const plugin = new main.FoyerPlugin();
   const layoutChangeHandlers = [];
   const viewStates = [];
@@ -203,6 +203,7 @@ function createPluginFixture({ data = null } = {}) {
     main, plugin, layoutChangeHandlers, viewStates, saved, runPendingTimers, pendingTimers,
     homeOpens: () => homeOpens,
     runLayoutReady: () => layoutReady(),
+    flushDebounced: main.flushDebounced,
   };
 }
 
@@ -353,4 +354,27 @@ test('changing the controls saves through updateSetting', async () => {
   assert.equal(last.recentLimit, 12);
   assert.equal(last.resultLimit, 4);
   assert.equal(f.plugin.settings.recentLimit, 12);
+});
+
+test('rapid slider changes save once per setting, with the last value', async () => {
+  const f = createPluginFixture({ deferDebounce: true });
+  await f.plugin.onload();
+  const tab = new f.main.HomeSettingTab(f.plugin.app, f.plugin);
+  f.main.settingsLog.length = 0;
+  tab.display();
+  const strings = f.main.settingsModule.STRINGS.en;
+  const control = (key, type) => byType(f.main.settingsLog.find((setting) => setting.name === strings[key]), type);
+
+  // Obsidian calls onChange on every drag step: nothing is saved until the changes settle.
+  for (const value of [4, 9, 12]) control('settingsRecentLimit', 'slider').changeHandler(value);
+  assert.equal(f.saved.length, 0);
+  f.flushDebounced();
+  assert.equal(f.saved.length, 1);
+  assert.equal(f.saved[0].recentLimit, 12);
+
+  for (const value of [5, 6]) control('settingsResultLimit', 'slider').changeHandler(value);
+  f.flushDebounced();
+  assert.equal(f.saved.length, 2);
+  assert.equal(f.saved[1].resultLimit, 6);
+  assert.equal(f.saved[1].recentLimit, 12);
 });

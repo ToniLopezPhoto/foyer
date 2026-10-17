@@ -453,13 +453,19 @@ function insertTop(top, item, limit) {
 const stripMdSuffix = (text) => text.replace(/\.md$/i, '');
 
 // Separa «carpeta/subcarpeta/nota» en carpetas y nombre; cada segmento se sanea y los vacíos se descartan.
+// Una barra final («Proyectos/Idea.md/») no cuenta, y los segmentos que empiezan por «.» se descartan:
+// Foyer no lista archivos ocultos, así que no debe crear carpetas ocultas.
 function parseNoteInput(input) {
-  const segments = stripMdSuffix(input.trim())
+  const text = stripMdSuffix(input.trim().replace(/[\s/]+$/, ''));
+  const segments = text
     .split('/')
     .map((segment) => segment.replace(/[\\/:*?"<>|#^[\]]/g, ' ').replace(/\s+/g, ' ').trim())
-    .filter((segment) => segment && segment !== '.' && segment !== '..'); // «.» y «..» no pueden salir de la carpeta prevista
+    .filter((segment) => segment && !segment.startsWith('.')); // «.», «..» y ocultos no pueden salir de la carpeta prevista
   return { folders: segments.slice(0, -1), name: segments[segments.length - 1] || '' };
 }
+
+// Ruta de la nota «name» dentro de «folder» (cadena vacía = raíz del vault).
+const notePath = (folder, name) => normalizePath(folder ? `${folder}/${name}.md` : `${name}.md`);
 
 function iconFor(file) {
   if (/^(png|jpe?g|gif|webp|svg|avif|bmp)$/i.test(file.extension)) return 'image';
@@ -830,13 +836,18 @@ class HomeView extends ItemView {
     const lowered = query.toLowerCase();
     const previous = this.searchState;
     const pool = previous && lowered.startsWith(previous.query) ? previous.pool : this.getListedEntries();
-    const { top: matches, matched, exact } = this.searchPool(
+    const parsed = parseNoteInput(query);
+    const { top: matches, matched, exact: sameName } = this.searchPool(
       pool,
       prepareFuzzySearch(query),
       this.plugin.settings.resultLimit,
-      stripMdSuffix(query).toLowerCase(),
+      parsed.name.toLowerCase(),
     );
     this.searchState = { query: lowered, pool: matched };
+    // Con carpetas, la coincidencia exacta es la nota en esa ruta; sin ellas, basta el nombre o un alias.
+    const exact = parsed.folders.length
+      ? this.findEntry(notePath(parsed.folders.join('/'), parsed.name)) instanceof TFile
+      : sameName;
 
     for (const m of matches) {
       const el = this.resultsEl.createDiv('foyer__item');
@@ -999,6 +1010,31 @@ class HomeView extends ItemView {
     }
   }
 
+  // Archivo o carpeta en `path`; sin distinguir mayúsculas si la API de Obsidian lo ofrece.
+  findEntry(path) {
+    const vault = this.app.vault;
+    const exact = vault.getAbstractFileByPath(path);
+    if (exact || typeof vault.getAbstractFileByPathInsensitive !== 'function') return exact;
+    return vault.getAbstractFileByPathInsensitive(path);
+  }
+
+  // Crea las carpetas que falten y devuelve la ruta real de la última. Una carpeta existente se reutiliza
+  // con su mayúscula real, para no crear un duplicado que solo cambie de casing.
+  async ensureFolders(folders) {
+    let current = '';
+    for (const part of folders) {
+      const wanted = current ? `${current}/${part}` : part;
+      const existing = this.findEntry(wanted);
+      if (existing) {
+        current = existing.path;
+      } else {
+        await this.app.vault.createFolder(wanted);
+        current = wanted;
+      }
+    }
+    return current;
+  }
+
   async createNote(name, mode) {
     const { folders, name: clean } = parseNoteInput(name);
     if (!clean) return;
@@ -1006,19 +1042,14 @@ class HomeView extends ItemView {
       let folder;
       if (folders.length) {
         // Con carpetas, la ruta es relativa a la raíz del vault; se crean las que falten.
-        folder = folders.join('/');
-        let current = '';
-        for (const part of folders) {
-          current = current ? `${current}/${part}` : part;
-          if (!this.app.vault.getAbstractFileByPath(current)) await this.app.vault.createFolder(current);
-        }
+        folder = await this.ensureFolders(folders);
       } else {
         // Respeta «Ubicación por defecto para notas nuevas» de Obsidian.
         const parent = this.app.fileManager.getNewFileParent(this.app.workspace.getActiveFile()?.path ?? '');
         folder = parent && !parent.isRoot() ? parent.path : '';
       }
-      const path = normalizePath(folder ? `${folder}/${clean}.md` : `${clean}.md`);
-      const existing = this.app.vault.getAbstractFileByPath(path);
+      const path = notePath(folder, clean);
+      const existing = this.findEntry(path);
       const file = existing instanceof TFile ? existing : await this.app.vault.create(path, '');
       await this.openFile(file, mode);
     } catch (err) {
@@ -1093,6 +1124,10 @@ class HomeSettingTab extends PluginSettingTab {
         .setValue(this.plugin.settings.replaceNewTab)
         .onChange((value) => this.plugin.updateSetting('replaceNewTab', value)));
 
+    // Los deslizadores llaman a onChange en cada paso del arrastre: se guarda una vez, con el último valor (300 ms sin cambios).
+    const saveRecentLimit = debounce((value) => this.plugin.updateSetting('recentLimit', value), 300, true);
+    const saveResultLimit = debounce((value) => this.plugin.updateSetting('resultLimit', value), 300, true);
+
     new Setting(containerEl)
       .setName(strings.settingsRecentLimit)
       .setDesc(strings.settingsRecentLimitDescription)
@@ -1100,7 +1135,7 @@ class HomeSettingTab extends PluginSettingTab {
         .setLimits(LIMIT_MIN, LIMIT_MAX, 1)
         .setValue(this.plugin.settings.recentLimit)
         .setDynamicTooltip()
-        .onChange((value) => this.plugin.updateSetting('recentLimit', value)));
+        .onChange((value) => saveRecentLimit(value)));
 
     new Setting(containerEl)
       .setName(strings.settingsResultLimit)
@@ -1109,7 +1144,7 @@ class HomeSettingTab extends PluginSettingTab {
         .setLimits(LIMIT_MIN, LIMIT_MAX, 1)
         .setValue(this.plugin.settings.resultLimit)
         .setDynamicTooltip()
-        .onChange((value) => this.plugin.updateSetting('resultLimit', value)));
+        .onChange((value) => saveResultLimit(value)));
 
     const applyImage = async (file) => {
       await this.plugin.updateSetting('heroImagePath', file.path);

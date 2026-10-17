@@ -5,7 +5,7 @@ const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
 const vm = require('node:vm');
 
-// Carga main.js en un contexto vm con un módulo obsidian simulado. No arranca Obsidian.
+// Loads main.js in a vm context with a stubbed obsidian module. Does not start Obsidian.
 
 class TFolder {
   constructor(path) {
@@ -31,7 +31,7 @@ class TFile {
   }
 }
 
-// Elemento DOM mínimo: lo justo para renderizar la vista sin Obsidian.
+// Minimal DOM element: just enough to render the view without Obsidian.
 function createElement(options = {}) {
   const el = {
     text: '',
@@ -84,7 +84,7 @@ function createMoment(clock) {
   };
 }
 
-// Componentes de ajuste (toggle, slider...) que solo registran lo que la pestaña de ajustes les pide.
+// Setting components (toggle, slider...) that only record what the settings tab asks of them.
 function createSettingComponent(type) {
   const component = {
     type,
@@ -120,19 +120,21 @@ function subsequenceFuzzy(query) {
   };
 }
 
-// Con deferDebounce, las llamadas a debounce() quedan pendientes hasta llamar a .run(), como en Obsidian.
-// Con fuzzy se sustituye prepareFuzzySearch. Con animationFrames, window.requestAnimationFrame existe y los
-// callbacks quedan en frames.queue hasta llamar a frames.flush().
+// With deferDebounce, debounce() calls stay pending until .run() is called, as in Obsidian;
+// flushDebounced() runs the last pending call of each debouncer. fuzzy replaces prepareFuzzySearch.
+// With animationFrames, window.requestAnimationFrame exists and its callbacks stay in frames.queue
+// until frames.flush() is called.
 function loadMain({ deferDebounce = false, fuzzy = null, animationFrames = false } = {}) {
   const notices = [];
   const clock = { hour: 9, date: 'lunes, 1 de enero' };
   const timers = { intervals: [], timeouts: [] };
+  const debouncers = [];
 
   class FakeDate extends Date {
     getHours() { return clock.hour; }
   }
 
-  // Cada Setting creado queda registrado en settingsLog, en orden de creación.
+  // Each Setting created is recorded in settingsLog, in creation order.
   const settingsLog = [];
   class Setting {
     constructor(containerEl) {
@@ -200,6 +202,7 @@ function loadMain({ deferDebounce = false, fuzzy = null, animationFrames = false
           pending = null;
           fn(...args);
         };
+        debouncers.push(deferred);
         return deferred;
       }
       const run = (...args) => fn(...args);
@@ -262,7 +265,8 @@ function loadMain({ deferDebounce = false, fuzzy = null, animationFrames = false
     context,
   );
   const { HomeView, HomeSettingTab, FoyerPlugin, settingsModule } = context.module.exports;
-  return { HomeView, HomeSettingTab, FoyerPlugin, settingsModule, TFile, TFolder, clock, notices, timers, frames, settingsLog };
+  const flushDebounced = () => { for (const deferred of debouncers) deferred.run(); };
+  return { HomeView, HomeSettingTab, FoyerPlugin, settingsModule, TFile, TFolder, clock, notices, timers, frames, settingsLog, flushDebounced };
 }
 
 module.exports = { createElement, loadMain, subsequenceFuzzy };

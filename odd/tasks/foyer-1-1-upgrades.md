@@ -92,15 +92,16 @@ Route evidence: every task edits `main.js` plus at most a test file, `styles.css
 - Acceptance: tests for ordering, fallback, keyboard navigation, and ARIA attributes.
 
 ### T7 — Version 1.1.0 + README
-- [ ] Bump `manifest.json` and `versions.json` to `1.1.0` (`minAppVersion` unchanged).
-- [ ] README: document every new setting and behavior; add a short "What's new in 1.1" section.
-- [ ] Do not tag or push.
-- [ ] Note-creation hardening from the T1 review (non-blocking advisory findings, accepted as later work):
-  - Skip segments that start with `.` (they would create hidden folders that Foyer itself never lists).
-  - Reuse an existing folder whose name differs only in case instead of creating a near-duplicate (`vault.getAbstractFileByPathInsensitive` when available).
-  - Use one normalization (`parseNoteInput`) for both the "exact match" check in `updateResults` and `createNote`, so "Create note" is not offered for a name that would resolve to an existing note.
-  - Ignore a trailing `/` (and `.md/`) in the typed name.
-  - Strengthen the weak "exact match" assertion in `tests/create-note.test.cjs` and keep test comments in English.
+- [x] Bump `manifest.json` and `versions.json` to `1.1.0` (`minAppVersion` unchanged).
+- [x] README: document every new setting and behavior; add a short "What's new in 1.1" section.
+- [x] Do not tag or push.
+- [x] Note-creation hardening from the T1 review (non-blocking advisory findings, accepted as later work):
+  - [x] Skip segments that start with `.` (they would create hidden folders that Foyer itself never lists).
+  - [x] Reuse an existing folder whose name differs only in case instead of creating a near-duplicate (`vault.getAbstractFileByPathInsensitive` when available).
+  - [x] Use one normalization (`parseNoteInput`) for both the "exact match" check in `updateResults` and `createNote`, so "Create note" is not offered for a name that would resolve to an existing note.
+  - [x] Ignore a trailing `/` (and `.md/`) in the typed name.
+  - [x] Strengthen the weak "exact match" assertion in `tests/create-note.test.cjs` and keep test comments in English.
+- [x] Slider saves: `recentLimit` and `resultLimit` save through one `debounce(fn, 300, true)` each, created per `display()`; a test proves rapid changes save once with the last value.
 - Acceptance: release workflow's version check passes locally; all tests pass.
 
 ## Progress
@@ -112,9 +113,9 @@ Route evidence: every task edits `main.js` plus at most a test file, `styles.css
 | T3 | done | `4aff88d` | `node --test tests/*.test.cjs`: 52/52 pass (RED observed first on 14 of the 19 new tests); `node --check main.js` OK; `git diff --check` OK; coordinator re-ran tests: 52/52 | slice T2+T3: medium; consent declined by user (boundary advances to `4aff88d`) |
 | T4 | done | `1e494d1` | `node --test tests/*.test.cjs`: 73/73 pass (21 new in `tests/search-performance.test.cjs`; RED observed first on 6 of them: coalescing x2, narrowing x2, cache reuse, close cleanup); `node --check main.js` OK; `git diff --check` OK; timing on 50,000 synthetic files with a subsequence matcher stub, per search while typing `notera`: before 45.1 / 37.9 / 19.6 / 17.3 / 13.2 / 16.4 ms, after 29.2 / 3.3 / 5.1 / 1.5 / 0.9 / 0.2 ms (first keystroke is a full scan; a non-prefix edit rescans, 11.2 ms) | medium (671 lines from 4aff88d); consent declined by user |
 | T5 | done | `ce1d82f` | `node --test tests/*.test.cjs`: 94/94 pass (21 new in `tests/search-quality.test.cjs`; RED observed first on 17 of them, the other 4 are regression guards); `node --check main.js` OK; `git diff --check` OK. Stubs: `metadataCache` added to the view fixtures of the existing tests; `renderMatches` stub now writes the text. `tests/search-performance.test.cjs` reference ranking unchanged (its plugin stub has no history) | medium (459 lines from 1e494d1); consent declined by user |
-| T6 | done | (this commit) | `node --test tests/*.test.cjs`: 125/125 pass (31 new in `tests/recents-keyboard.test.cjs`; RED observed first on 21 of them, the other 10 are regression guards); `node --check main.js` OK; `git diff --check` OK. Stubs: `tests/support/load-main.cjs` elements now record listeners (`dispatch`) and have `getAttribute`; `tests/navigation.test.cjs` adapted to the new `addItem(list, el, run, file)` signature | |
-| T7 | pending | | | |
+| T6 | done | `df7f9dc` | `node --test tests/*.test.cjs`: 125/125 pass (31 new in `tests/recents-keyboard.test.cjs`; RED observed first on 21 of them, the other 10 are regression guards); `node --check main.js` OK; `git diff --check` OK. Stubs: `tests/support/load-main.cjs` elements now record listeners (`dispatch`) and have `getAttribute`; `tests/navigation.test.cjs` adapted to the new `addItem(list, el, run, file)` signature | medium (563 lines from ce1d82f); consent declined by user |
+| T7 | done | (this commit) | `node --test tests/*.test.cjs`: 134/134 pass (9 new: 8 in `tests/create-note.test.cjs`, 1 in `tests/settings.test.cjs`); RED observed first on 7 of them (6 note-creation behaviors, slider save count 3 vs 0); the other new guards pass on the old code; `node --check main.js` OK; `git diff --check` OK; release version check prints `1.1.0` | pending coordinator review |
 
 ## Next step
 
-T6 in a Sonnet 5.5 session.
+User decision: push the branch and open the stacked PRs, then tag 1.1.0.
