@@ -29,6 +29,9 @@ jobs:
       - name: Syntax check
         run: node --check main.js
 
+      - name: Unit tests
+        run: node --test tests/*.test.cjs
+
       - name: Create draft release
         env:
           GH_TOKEN: ${{ github.token }}

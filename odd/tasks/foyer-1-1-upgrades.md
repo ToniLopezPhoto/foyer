@@ -51,10 +51,10 @@ Ship the improvements found in the post-1.0.1 audit: per-device history storage,
 Route evidence: every task edits `main.js` plus at most a test file, `styles.css`, or `README.md`; the plan was prepared from a full read of `main.js`.
 
 ### T1 — Small bugs + CI tests
-- [ ] `createNote`: strip a trailing `.md` (case-insensitive) from the query; the "exact match" check in `updateResults` ignores it too.
-- [ ] `createNote`: `/` separates folders. Sanitize each segment, drop empty ones; when a folder is given, it is relative to the vault root (not the default new-note location); create missing folders with `vault.createFolder`.
-- [ ] Greeting and date refresh in the existing 30 s interval (no full re-render).
-- [ ] `.github/workflows/release.yml`: run `node --test tests/` after the syntax check.
+- [x] `createNote`: strip a trailing `.md` (case-insensitive) from the query; the "exact match" check in `updateResults` ignores it too.
+- [x] `createNote`: `/` separates folders. Sanitize each segment, drop empty ones; when a folder is given, it is relative to the vault root (not the default new-note location); create missing folders with `vault.createFolder`.
+- [x] Greeting and date refresh in the existing 30 s interval (no full re-render).
+- [x] `.github/workflows/release.yml`: run `node --test tests/` after the syntax check. (Ran as `node --test tests/*.test.cjs`: Node 22+ rejects a directory argument.)
 - Acceptance: new tests cover each behavior; `node --test tests/` and `node --check main.js` pass.
 
 ### T2 — Per-device history storage
@@ -100,7 +100,7 @@ Route evidence: every task edits `main.js` plus at most a test file, `styles.css
 
 | Task | Status | Commit | Checks | Review |
 |---|---|---|---|---|
-| T1 | pending | | | |
+| T1 | done | this commit (see `git log -1`) | `node --test tests/*.test.cjs`: 17/17 pass (RED observed first on 9); `node --check main.js` OK; `git diff --check` OK | not run |
 | T2 | pending | | | |
 | T3 | pending | | | |
 | T4 | pending | | | |

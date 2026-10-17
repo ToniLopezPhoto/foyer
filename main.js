@@ -336,6 +336,18 @@ const isListed = (f) => f instanceof TFile && !IGNORED.test(f.path);
 const displayName = (f) => (f.extension === 'md' ? f.basename : f.name);
 const folderOf = (f) => (f.parent && !f.parent.isRoot() ? f.parent.path : '');
 
+// Quita un «.md» final sin distinguir mayúsculas: «idea.md» busca o crea la nota «idea».
+const stripMdSuffix = (text) => text.replace(/\.md$/i, '');
+
+// Separa «carpeta/subcarpeta/nota» en carpetas y nombre; cada segmento se sanea y los vacíos se descartan.
+function parseNoteInput(input) {
+  const segments = stripMdSuffix(input.trim())
+    .split('/')
+    .map((segment) => segment.replace(/[\\/:*?"<>|#^[\]]/g, ' ').replace(/\s+/g, ' ').trim())
+    .filter(Boolean);
+  return { folders: segments.slice(0, -1), name: segments[segments.length - 1] || '' };
+}
+
 function iconFor(file) {
   if (/^(png|jpe?g|gif|webp|svg|avif|bmp)$/i.test(file.extension)) return 'image';
   return ICONS[file.extension] || 'file';
@@ -441,7 +453,10 @@ class HomeView extends ItemView {
         this.focusInput();
       }
     }));
-    this.registerInterval(window.setInterval(() => this.updateRecentTimes(), 30 * 1000));
+    this.registerInterval(window.setInterval(() => {
+      this.refreshHeader();
+      this.updateRecentTimes();
+    }, 30 * 1000));
 
     this.refresh();
     this.focusInput();
@@ -454,8 +469,7 @@ class HomeView extends ItemView {
   refresh() {
     const language = this.plugin.getEffectiveLanguage();
     const strings = STRINGS[language];
-    this.dateEl.setText(formatCalendarDate(moment, language));
-    this.titleEl.setText(formatGreeting(language, this.plugin.settings.name, new Date().getHours()));
+    this.refreshHeader();
     this.inputEl.placeholder = strings.searchPlaceholder;
     this.inputEl.setAttribute('aria-label', strings.searchLabel);
     this.recentLabelEl.setText(strings.recent);
@@ -464,6 +478,13 @@ class HomeView extends ItemView {
     strings.keyboardHelp.forEach((item) => this.helpEl.createSpan({ text: typeof item === 'function' ? item(mod) : item }));
     this.renderHeroImage();
     this.renderRecent();
+  }
+
+  // Fecha y saludo; también los actualiza el temporizador, sin repintar la vista.
+  refreshHeader() {
+    const language = this.plugin.getEffectiveLanguage();
+    this.dateEl.setText(formatCalendarDate(moment, language));
+    this.titleEl.setText(formatGreeting(language, this.plugin.settings.name, new Date().getHours()));
   }
 
   refreshSettings() {
@@ -611,7 +632,7 @@ class HomeView extends ItemView {
     const searchEl = this.actionItem('search', strings.searchContent(query), '⇧ ↵');
     this.addItem(searchEl, () => this.openGlobalSearch(query));
 
-    const exact = matches.some((m) => m.name.toLowerCase() === query.toLowerCase());
+    const exact = matches.some((m) => m.name.toLowerCase() === stripMdSuffix(query).toLowerCase());
     if (!exact) {
       const createEl = this.actionItem('file-plus', strings.createNote(query), '');
       this.addItem(createEl, (mode) => this.createNote(query, mode));
@@ -697,12 +718,23 @@ class HomeView extends ItemView {
   }
 
   async createNote(name, mode) {
-    const clean = name.replace(/[\\/:*?"<>|#^[\]]/g, ' ').replace(/\s+/g, ' ').trim();
+    const { folders, name: clean } = parseNoteInput(name);
     if (!clean) return;
     try {
-      // Respeta «Ubicación por defecto para notas nuevas» de Obsidian.
-      const parent = this.app.fileManager.getNewFileParent(this.app.workspace.getActiveFile()?.path ?? '');
-      const folder = parent && !parent.isRoot() ? parent.path : '';
+      let folder;
+      if (folders.length) {
+        // Con carpetas, la ruta es relativa a la raíz del vault; se crean las que falten.
+        folder = folders.join('/');
+        let current = '';
+        for (const part of folders) {
+          current = current ? `${current}/${part}` : part;
+          if (!this.app.vault.getAbstractFileByPath(current)) await this.app.vault.createFolder(current);
+        }
+      } else {
+        // Respeta «Ubicación por defecto para notas nuevas» de Obsidian.
+        const parent = this.app.fileManager.getNewFileParent(this.app.workspace.getActiveFile()?.path ?? '');
+        folder = parent && !parent.isRoot() ? parent.path : '';
+      }
       const path = normalizePath(folder ? `${folder}/${clean}.md` : `${clean}.md`);
       const existing = this.app.vault.getAbstractFileByPath(path);
       const file = existing instanceof TFile ? existing : await this.app.vault.create(path, '');
