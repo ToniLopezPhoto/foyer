@@ -38,7 +38,7 @@ Resolve the findings from the Obsidian community directory's automated review of
 T1 and T2 touch different files and run in parallel; T3 runs after T1.
 
 ### T1 — README H1 title
-- [ ] Add a Markdown `# Foyer` heading near the top of `README.md` (after the banner block), so it is the first H1 in the file and matches `manifest.json` `name`.
+- [x] Add a Markdown `# Foyer` heading near the top of `README.md` (after the banner block), so it is the first H1 in the file and matches `manifest.json` `name`.
 - Acceptance: the first line matching `^# ` in `README.md` is `# Foyer`; layout still renders centered banner + tagline.
 
 ### T2 — Release artifact attestations
@@ -55,4 +55,5 @@ T1 and T2 touch different files and run in parallel; T3 runs after T1.
 
 ## Progress
 
-- Not started.
+- T1 done: `# Foyer` added after banner `</p>` in `README.md` (line 5). Checks: `grep -n -m1 '^# ' README.md` → `5:# Foyer`; `git diff --check` exit 0; `node --check main.js` exit 0.
+- T2, T3: not started.

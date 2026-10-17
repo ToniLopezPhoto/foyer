@@ -2,6 +2,8 @@
   <img src="assets/foyer-banner.svg" alt="Foyer — A quieter way into Obsidian" width="100%">
 </p>
 
+# Foyer
+
 <p align="center">
   <strong>Your notes, one quiet starting point.</strong><br>
   A minimal, personal home screen for <a href="https://obsidian.md/">Obsidian</a>.
