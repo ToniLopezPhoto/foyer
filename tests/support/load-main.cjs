@@ -98,8 +98,29 @@ function createSettingComponent(type) {
   return component;
 }
 
+// Subsequence fuzzy matcher: case-insensitive, deterministic, score = minus the number of skipped characters.
+// Lets search tests produce many score ties; a prefix extension of a query never matches more files.
+function subsequenceFuzzy(query) {
+  const needle = query.toLowerCase();
+  return (text) => {
+    const haystack = text.toLowerCase();
+    const matches = [];
+    let from = 0;
+    for (const char of needle) {
+      const at = haystack.indexOf(char, from);
+      if (at === -1) return null;
+      matches.push([at, at + 1]);
+      from = at + 1;
+    }
+    const span = matches.length ? matches[matches.length - 1][0] - matches[0][0] + 1 : 0;
+    return { score: -(span - needle.length), matches };
+  };
+}
+
 // Con deferDebounce, las llamadas a debounce() quedan pendientes hasta llamar a .run(), como en Obsidian.
-function loadMain({ deferDebounce = false } = {}) {
+// Con fuzzy se sustituye prepareFuzzySearch. Con animationFrames, window.requestAnimationFrame existe y los
+// callbacks quedan en frames.queue hasta llamar a frames.flush().
+function loadMain({ deferDebounce = false, fuzzy = null, animationFrames = false } = {}) {
   const notices = [];
   const clock = { hour: 9, date: 'lunes, 1 de enero' };
   const timers = { intervals: [], timeouts: [] };
@@ -149,7 +170,7 @@ function loadMain({ deferDebounce = false } = {}) {
         this.leaf = leaf;
         this.contentEl = createElement();
       }
-      registerDomEvent() {}
+      registerDomEvent(el, type, handler) { (this.domHandlers ||= []).push({ el, type, handler }); }
       registerEvent() {}
       registerInterval(id) { return id; }
     },
@@ -158,9 +179,9 @@ function loadMain({ deferDebounce = false } = {}) {
     },
     Keymap: { isModEvent: (event) => event.mode || false },
     Platform: { isMacOS: false },
-    prepareFuzzySearch: (query) => (text) => (
+    prepareFuzzySearch: fuzzy || ((query) => (text) => (
       text.toLowerCase().includes(query.toLowerCase()) ? { score: 1, matches: [] } : null
-    ),
+    )),
     renderMatches() {},
     setIcon() {},
     moment: createMoment(clock),
@@ -186,6 +207,15 @@ function loadMain({ deferDebounce = false } = {}) {
     TFolder,
   };
 
+  const frames = {
+    queue: [],
+    nextId: 1,
+    flush() {
+      const pending = frames.queue.splice(0);
+      for (const frame of pending) if (!frame.cancelled) frame.fn();
+    },
+  };
+
   const window = {
     setInterval(fn, ms) {
       timers.intervals.push({ fn, ms });
@@ -199,6 +229,17 @@ function loadMain({ deferDebounce = false } = {}) {
       if (timers.timeouts[id - 1]) timers.timeouts[id - 1].cancelled = true;
     },
   };
+  if (animationFrames) {
+    window.requestAnimationFrame = (fn) => {
+      const id = frames.nextId++;
+      frames.queue.push({ id, fn, cancelled: false });
+      return id;
+    };
+    window.cancelAnimationFrame = (id) => {
+      const frame = frames.queue.find((entry) => entry.id === id);
+      if (frame) frame.cancelled = true;
+    };
+  }
 
   const context = vm.createContext({
     module: { exports: {} },
@@ -218,7 +259,7 @@ function loadMain({ deferDebounce = false } = {}) {
     context,
   );
   const { HomeView, HomeSettingTab, FoyerPlugin, settingsModule } = context.module.exports;
-  return { HomeView, HomeSettingTab, FoyerPlugin, settingsModule, TFile, TFolder, clock, notices, timers, settingsLog };
+  return { HomeView, HomeSettingTab, FoyerPlugin, settingsModule, TFile, TFolder, clock, notices, timers, frames, settingsLog };
 }
 
-module.exports = { createElement, loadMain };
+module.exports = { createElement, loadMain, subsequenceFuzzy };

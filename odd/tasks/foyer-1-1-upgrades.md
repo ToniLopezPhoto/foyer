@@ -72,10 +72,10 @@ Route evidence: every task edits `main.js` plus at most a test file, `styles.css
 - Acceptance: tests cover normalization of the new settings and the live toggle.
 
 ### T4 — Search performance
-- [ ] Coalesce input to one search per animation frame (or ≤ 50 ms debounce) without delaying Enter (Enter uses up-to-date results).
-- [ ] Cache the listed-files array; invalidate on vault `create`, `delete`, `rename`.
-- [ ] When the new query extends the previous one, filter only the previous candidate set.
-- [ ] Keep only the top `resultLimit` matches (bounded insertion) instead of sorting everything; ranking order unchanged.
+- [x] Coalesce input to one search per animation frame (or ≤ 50 ms debounce) without delaying Enter (Enter uses up-to-date results).
+- [x] Cache the listed-files array; invalidate on vault `create`, `delete`, `rename`.
+- [x] When the new query extends the previous one, filter only the previous candidate set.
+- [x] Keep only the top `resultLimit` matches (bounded insertion) instead of sorting everything; ranking order unchanged.
 - Acceptance: tests prove identical ranking to the previous algorithm on a fixture vault, cache invalidation, and narrowing; a simple timing test on ~50k synthetic files is reported (not asserted).
 
 ### T5 — Search quality
@@ -110,7 +110,7 @@ Route evidence: every task edits `main.js` plus at most a test file, `styles.css
 | T1 | done | `532754c` | `node --test tests/*.test.cjs`: 17/17 pass (RED observed first on 9); `node --check main.js` OK; `git diff --check` OK | high (workflow shell); consent granted; 4 lenses approved, acknowledged (lineage `review-0e04b31a58d5e840`); 10 advisory findings moved to T7 |
 | T2 | done | `e13b717` | `node --test tests/*.test.cjs`: 33/33 pass (RED observed first on 15: 13 history + 2 `parseNoteInput`); `node --check main.js` OK; `git diff --check` OK; coordinator re-ran tests: 33/33 | slice T2+T3 (from `532754c`, 893 lines): medium, budget reached; consent declined by user |
 | T3 | done | `4aff88d` | `node --test tests/*.test.cjs`: 52/52 pass (RED observed first on 14 of the 19 new tests); `node --check main.js` OK; `git diff --check` OK; coordinator re-ran tests: 52/52 | slice T2+T3: medium; consent declined by user (boundary advances to `4aff88d`) |
-| T4 | pending | | | |
+| T4 | done | (this commit) | `node --test tests/*.test.cjs`: 73/73 pass (21 new in `tests/search-performance.test.cjs`; RED observed first on 6 of them: coalescing x2, narrowing x2, cache reuse, close cleanup); `node --check main.js` OK; `git diff --check` OK; timing on 50,000 synthetic files with a subsequence matcher stub, per search while typing `notera`: before 45.1 / 37.9 / 19.6 / 17.3 / 13.2 / 16.4 ms, after 29.2 / 3.3 / 5.1 / 1.5 / 0.9 / 0.2 ms (first keystroke is a full scan; a non-prefix edit rescans, 11.2 ms) | |
 | T5 | pending | | | |
 | T6 | pending | | | |
 | T7 | pending | | | |

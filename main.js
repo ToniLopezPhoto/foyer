@@ -419,6 +419,20 @@ const isListed = (f) => f instanceof TFile && !IGNORED.test(f.path);
 const displayName = (f) => (f.extension === 'md' ? f.basename : f.name);
 const folderOf = (f) => (f.parent && !f.parent.isRoot() ? f.parent.path : '');
 
+// Orden de los resultados: coincidencia en el nombre, mayor puntuación y archivo más reciente.
+// Devuelve < 0 si el candidato (onName, score, mtime) va antes que `other`; 0 si empatan.
+const compareRank = (onName, score, mtime, other) =>
+  (other.onName - onName) || (other.match.score - score) || (other.file.stat.mtime - mtime);
+
+// Inserta `item` en `top` (ordenado, como máximo `limit` elementos) detrás de los que empatan con él.
+// Equivale a ordenar todas las coincidencias con un sort estable y quedarse con las primeras.
+function insertTop(top, item, limit) {
+  let at = top.length;
+  while (at > 0 && compareRank(item.onName, item.match.score, item.file.stat.mtime, top[at - 1]) < 0) at--;
+  top.splice(at, 0, item);
+  if (top.length > limit) top.pop();
+}
+
 // Quita un «.md» final sin distinguir mayúsculas: «idea.md» busca o crea la nota «idea».
 const stripMdSuffix = (text) => text.replace(/\.md$/i, '');
 
@@ -471,6 +485,9 @@ class HomeView extends ItemView {
     this.navigation = true; // abrir un archivo desde el explorador reemplaza el inicio
     this.items = [];
     this.selected = -1;
+    this.listedEntries = null; // caché de archivos listados: { file, name }, en el orden de vault.getFiles()
+    this.searchState = null; // { query, pool }: candidatos de la última búsqueda para acotar la siguiente
+    this.pendingSearch = null; // { cancel }: búsqueda programada para el próximo frame
     this.refreshRecentSoon = debounce(() => this.renderRecent(), 150, true);
   }
 
@@ -523,13 +540,17 @@ class HomeView extends ItemView {
     this.recentEl = recent.createDiv('foyer__list');
 
     // Eventos
-    this.registerDomEvent(this.inputEl, 'input', () => this.updateResults());
+    this.registerDomEvent(this.inputEl, 'input', () => this.scheduleSearch());
     this.registerDomEvent(this.inputEl, 'keydown', (e) => this.onKeyDown(e));
 
     const ws = this.app.workspace;
     this.registerEvent(ws.on('file-open', () => this.refreshRecentSoon()));
     this.registerEvent(this.app.vault.on('delete', () => this.refreshRecentSoon()));
     this.registerEvent(this.app.vault.on('rename', () => this.refreshRecentSoon()));
+    // Cualquier cambio en la lista de archivos invalida la caché de búsqueda (se reconstruye al buscar).
+    for (const name of ['create', 'delete', 'rename']) {
+      this.registerEvent(this.app.vault.on(name, () => this.invalidateSearchCache()));
+    }
     this.registerEvent(ws.on('active-leaf-change', (leaf) => {
       if (leaf === this.leaf) {
         this.refresh();
@@ -546,6 +567,8 @@ class HomeView extends ItemView {
   }
 
   async onClose() {
+    this.cancelPendingSearch();
+    this.invalidateSearchCache();
     this.contentEl.empty();
   }
 
@@ -665,34 +688,98 @@ class HomeView extends ItemView {
   }
 
   /* ── Búsqueda ── */
+  // Como mucho una búsqueda por frame (o ≤ 50 ms sin requestAnimationFrame); las teclas que
+  // actúan sobre los resultados la ejecutan antes con flushSearch().
+  scheduleSearch() {
+    if (this.pendingSearch) return;
+    const run = () => {
+      this.pendingSearch = null;
+      this.updateResults();
+    };
+    if (typeof window.requestAnimationFrame === 'function') {
+      const id = window.requestAnimationFrame(run);
+      this.pendingSearch = { cancel: () => window.cancelAnimationFrame(id) };
+    } else {
+      const id = window.setTimeout(run, 50);
+      this.pendingSearch = { cancel: () => window.clearTimeout(id) };
+    }
+  }
+
+  cancelPendingSearch() {
+    if (!this.pendingSearch) return;
+    this.pendingSearch.cancel();
+    this.pendingSearch = null;
+  }
+
+  flushSearch() {
+    if (this.pendingSearch) this.updateResults();
+  }
+
+  invalidateSearchCache() {
+    this.listedEntries = null;
+    this.searchState = null;
+  }
+
+  // Archivos listados (isListed ya aplicado) con su nombre visible; se reconstruye tras invalidar.
+  getListedEntries() {
+    if (!this.listedEntries) {
+      const entries = [];
+      for (const file of this.app.vault.getFiles()) {
+        if (isListed(file)) entries.push({ file, name: displayName(file) });
+      }
+      this.listedEntries = entries;
+    }
+    return this.listedEntries;
+  }
+
+  // Recorre `pool` (en el orden del vault) y devuelve las mejores `limit` coincidencias, todas las
+  // entradas que coinciden (candidatos de la siguiente búsqueda) y si alguna se llama exactamente `exactName`.
+  searchPool(pool, fuzzy, limit, exactName) {
+    const top = [];
+    const matched = [];
+    let exact = false;
+    for (const entry of pool) {
+      let onName = true;
+      let match = fuzzy(entry.name);
+      if (!match) {
+        onName = false;
+        match = fuzzy(entry.file.path);
+        if (!match) continue;
+      }
+      matched.push(entry);
+      if (!exact && entry.name.toLowerCase() === exactName) exact = true;
+      // Con la lista llena, solo entra quien supera estrictamente al último (los empates conservan el orden del vault).
+      if (top.length >= limit && compareRank(onName, match.score, entry.file.stat.mtime, top[limit - 1]) >= 0) continue;
+      insertTop(top, { file: entry.file, name: entry.name, onName, match }, limit);
+    }
+    return { top, matched, exact };
+  }
+
   updateResults() {
+    this.cancelPendingSearch();
     const query = this.inputEl.value.trim();
     this.resultsEl.empty();
     this.items = [];
     this.selected = -1;
     this.wrapEl.toggleClass('is-searching', query.length > 0);
-    if (!query) return;
-
-    const fuzzy = prepareFuzzySearch(query);
-    const matches = [];
-    for (const file of this.app.vault.getFiles()) {
-      if (!isListed(file)) continue;
-      const name = displayName(file);
-      const byName = fuzzy(name);
-      if (byName) {
-        matches.push({ file, name, onName: true, match: byName });
-        continue;
-      }
-      const byPath = fuzzy(file.path);
-      if (byPath) matches.push({ file, name, onName: false, match: byPath });
+    if (!query) {
+      this.searchState = null;
+      return;
     }
 
-    matches.sort((a, b) =>
-      (b.onName - a.onName) ||
-      (b.match.score - a.match.score) ||
-      (b.file.stat.mtime - a.file.stat.mtime));
+    // Si la consulta amplía la anterior, solo pueden coincidir los archivos que ya coincidían.
+    const lowered = query.toLowerCase();
+    const previous = this.searchState;
+    const pool = previous && lowered.startsWith(previous.query) ? previous.pool : this.getListedEntries();
+    const { top: matches, matched, exact } = this.searchPool(
+      pool,
+      prepareFuzzySearch(query),
+      this.plugin.settings.resultLimit,
+      stripMdSuffix(query).toLowerCase(),
+    );
+    this.searchState = { query: lowered, pool: matched };
 
-    for (const m of matches.slice(0, this.plugin.settings.resultLimit)) {
+    for (const m of matches) {
       const el = this.resultsEl.createDiv('foyer__item');
       setIcon(el.createSpan('foyer__item-icon'), iconFor(m.file));
       const body = el.createDiv('foyer__item-body');
@@ -715,7 +802,6 @@ class HomeView extends ItemView {
     const searchEl = this.actionItem('search', strings.searchContent(query), '⇧ ↵');
     this.addItem(searchEl, () => this.openGlobalSearch(query));
 
-    const exact = matches.some((m) => m.name.toLowerCase() === stripMdSuffix(query).toLowerCase());
     if (!exact) {
       const createEl = this.actionItem('file-plus', strings.createNote(query), '');
       this.addItem(createEl, (mode) => this.createNote(query, mode));
@@ -756,10 +842,12 @@ class HomeView extends ItemView {
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
+        this.flushSearch();
         this.select(this.selected + 1);
         break;
       case 'ArrowUp':
         e.preventDefault();
+        this.flushSearch();
         this.select(this.selected - 1);
         break;
       case 'Enter': {
@@ -770,6 +858,7 @@ class HomeView extends ItemView {
           this.openGlobalSearch(query);
           return;
         }
+        this.flushSearch(); // la búsqueda pendiente se resuelve antes de elegir
         const item = this.items[this.selected];
         if (item) item.run(Keymap.isModEvent(e));
         break;
