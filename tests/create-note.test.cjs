@@ -120,6 +120,25 @@ test('createNote without a folder keeps the default new-note location', async ()
   assert.equal(fileManager.parentCalls, 1);
 });
 
+test('createNote drops . and .. segments so the path cannot leave the intended folder', async () => {
+  const { view, vault } = createFixture({ newFileParent: 'Inbox' });
+  await view.createNote('../x');
+  await view.createNote('a/./b');
+  await view.createNote('../../etc/passwd');
+  await view.createNote('./y');
+  assert.deepEqual(vault.createdFolders, ['a', 'etc']);
+  assert.deepEqual(vault.created, ['Inbox/x.md', 'a/b.md', 'etc/passwd.md', 'Inbox/y.md']);
+});
+
+test('createNote does nothing for input made only of . and .. segments', async () => {
+  const { view, vault, opened } = createFixture();
+  await view.createNote('..');
+  await view.createNote('./../.');
+  assert.deepEqual(vault.createdFolders, []);
+  assert.deepEqual(vault.created, []);
+  assert.equal(opened.length, 0);
+});
+
 test('createNote does nothing when no usable name remains', async () => {
   const { view, vault, opened } = createFixture();
   await view.createNote('/ /');

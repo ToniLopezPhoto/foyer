@@ -80,7 +80,8 @@ function createMoment(clock) {
   };
 }
 
-function loadMain() {
+// Con deferDebounce, las llamadas a debounce() quedan pendientes hasta llamar a .run(), como en Obsidian.
+function loadMain({ deferDebounce = false } = {}) {
   const notices = [];
   const clock = { hour: 9, date: 'lunes, 1 de enero' };
   const timers = { intervals: [], timeouts: [] };
@@ -117,6 +118,17 @@ function loadMain() {
     getLanguage: () => 'en',
     normalizePath: (path) => path.replace(/\\/g, '/').replace(/\/{2,}/g, '/').replace(/^\/+|\/+$/g, ''),
     debounce: (fn) => {
+      if (deferDebounce) {
+        let pending = null;
+        const deferred = (...args) => { pending = args; };
+        deferred.run = () => {
+          if (!pending) return;
+          const args = pending;
+          pending = null;
+          fn(...args);
+        };
+        return deferred;
+      }
       const run = (...args) => fn(...args);
       run.run = () => fn();
       return run;

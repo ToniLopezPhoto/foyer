@@ -26,7 +26,7 @@ Ship the improvements found in the post-1.0.1 audit: per-device history storage,
 ## TDD
 
 - Mode: strict TDD enabled (source: user global instructions).
-- Runner: `node --test tests/` (Node built-in test runner, no dependencies). Tests load `main.js` in a `vm` context with a stubbed `obsidian` module, following `tests/navigation.test.cjs`.
+- Runner: `node --test tests/*.test.cjs` (Node built-in test runner, no dependencies). Tests load `main.js` in a `vm` context with a stubbed `obsidian` module, following `tests/navigation.test.cjs`.
 - Each task: observed RED, then GREEN, then REFACTOR.
 
 ## Delivery
@@ -54,14 +54,15 @@ Route evidence: every task edits `main.js` plus at most a test file, `styles.css
 - [x] `createNote`: strip a trailing `.md` (case-insensitive) from the query; the "exact match" check in `updateResults` ignores it too.
 - [x] `createNote`: `/` separates folders. Sanitize each segment, drop empty ones; when a folder is given, it is relative to the vault root (not the default new-note location); create missing folders with `vault.createFolder`.
 - [x] Greeting and date refresh in the existing 30 s interval (no full re-render).
-- [x] `.github/workflows/release.yml`: run `node --test tests/` after the syntax check. (Ran as `node --test tests/*.test.cjs`: Node 22+ rejects a directory argument.)
-- Acceptance: new tests cover each behavior; `node --test tests/` and `node --check main.js` pass.
+- [x] `.github/workflows/release.yml`: run `node --test tests/*.test.cjs` after the syntax check. (Ran as `node --test tests/*.test.cjs`: Node 22+ rejects a directory argument.)
+- Acceptance: new tests cover each behavior; `node --test tests/*.test.cjs` and `node --check main.js` pass.
+- Follow-up (done in the T2 commit): `parseNoteInput` drops `.` and `..` segments, so input like `../x` or `a/./b` cannot target paths outside the intended folder; tests added to `tests/create-note.test.cjs`.
 
 ### T2 — Per-device history storage
-- [ ] Store `openHistory` with `app.saveLocalStorage` / `app.loadLocalStorage` (per vault, per device) under a namespaced key, not in `data.json`.
-- [ ] One-time migration: if `data.json` still has `openHistory`, merge it into local storage (max timestamp per path) and save settings without it.
-- [ ] Keep rename/delete tracking and the 200-entry cap; keep a debounced write and flush on unload.
-- [ ] README "data" section describes where history now lives.
+- [x] Store `openHistory` with `app.saveLocalStorage` / `app.loadLocalStorage` (per vault, per device) under a namespaced key, not in `data.json`.
+- [x] One-time migration: if `data.json` still has `openHistory`, merge it into local storage (max timestamp per path) and save settings without it.
+- [x] Keep rename/delete tracking and the 200-entry cap; keep a debounced write and flush on unload.
+- [x] README "data" section describes where history now lives.
 - Acceptance: tests prove opens never call `saveData`, migration merges and strips, rename/delete still update history.
 
 ### T3 — Configurable options
@@ -101,7 +102,7 @@ Route evidence: every task edits `main.js` plus at most a test file, `styles.css
 | Task | Status | Commit | Checks | Review |
 |---|---|---|---|---|
 | T1 | done | this commit (see `git log -1`) | `node --test tests/*.test.cjs`: 17/17 pass (RED observed first on 9); `node --check main.js` OK; `git diff --check` OK | not run |
-| T2 | pending | | | |
+| T2 | done | this commit (see `git log -1`) | `node --test tests/*.test.cjs`: 33/33 pass (RED observed first on 15: 13 history + 2 `parseNoteInput`); `node --check main.js` OK; `git diff --check` OK | not run |
 | T3 | pending | | | |
 | T4 | pending | | | |
 | T5 | pending | | | |
@@ -110,4 +111,4 @@ Route evidence: every task edits `main.js` plus at most a test file, `styles.css
 
 ## Next step
 
-T1 in a Haiku 5.5 session.
+T3 in a Sonnet 5.5 session.

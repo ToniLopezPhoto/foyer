@@ -18,6 +18,7 @@ const DEFAULT_SETTINGS = Object.freeze({
 
 const HERO_IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'bmp']);
 const OPEN_HISTORY_LIMIT = 200;
+const OPEN_HISTORY_KEY = 'foyer-open-history';
 
 const STRINGS = {
   es: {
@@ -111,15 +112,53 @@ function normalizeOpenHistory(value) {
   return out;
 }
 
+// El historial vive en el almacenamiento local del dispositivo, nunca en data.json.
 function normalizeSettings(data) {
-  const source = data && typeof data === 'object' && !Array.isArray(data) ? data : {};
+  const { openHistory: _legacyHistory, ...source } = data && typeof data === 'object' && !Array.isArray(data) ? data : {};
   return {
     ...source,
     name: typeof source.name === 'string' ? source.name : DEFAULT_SETTINGS.name,
     language: ['auto', 'es', 'en'].includes(source.language) ? source.language : DEFAULT_SETTINGS.language,
     heroImagePath: typeof source.heroImagePath === 'string' ? source.heroImagePath : DEFAULT_SETTINGS.heroImagePath,
-    openHistory: normalizeOpenHistory(source.openHistory),
   };
+}
+
+// Combina dos historiales: gana la marca más reciente de cada ruta y se aplica el tope.
+function mergeOpenHistory(...histories) {
+  const merged = {};
+  for (const history of histories) {
+    for (const [path, ts] of Object.entries(normalizeOpenHistory(history))) {
+      merged[path] = Math.max(merged[path] || 0, ts);
+    }
+  }
+  const paths = Object.keys(merged);
+  if (paths.length > OPEN_HISTORY_LIMIT) {
+    paths
+      .sort((a, b) => merged[b] - merged[a])
+      .slice(OPEN_HISTORY_LIMIT)
+      .forEach((p) => delete merged[p]);
+  }
+  return merged;
+}
+
+// app.loadLocalStorage / saveLocalStorage son por vault y por dispositivo; si faltan, solo hay memoria.
+function loadOpenHistory(app) {
+  try {
+    if (typeof app.loadLocalStorage !== 'function') return {};
+    return normalizeOpenHistory(app.loadLocalStorage(OPEN_HISTORY_KEY));
+  } catch (_error) {
+    return {};
+  }
+}
+
+function saveOpenHistory(app, history) {
+  try {
+    if (typeof app.saveLocalStorage !== 'function') return false;
+    app.saveLocalStorage(OPEN_HISTORY_KEY, history);
+    return true;
+  } catch (_error) {
+    return false;
+  }
 }
 
 // Registra la hora real de apertura y recorta el historial a las entradas más recientes.
@@ -171,8 +210,17 @@ function sanitizeFileName(name) {
   return `${base}.${name.slice(dot + 1).toLowerCase()}`;
 }
 
+// Carga ajustes e historial. Si data.json aún trae openHistory (versiones anteriores),
+// se fusiona con el historial local y se guardan los ajustes sin él.
 async function loadSettings(plugin) {
-  plugin.settings = normalizeSettings(await plugin.loadData());
+  const raw = await plugin.loadData();
+  const legacy = raw && typeof raw === 'object' && !Array.isArray(raw) && 'openHistory' in raw;
+  plugin.settings = normalizeSettings(raw);
+  plugin.openHistory = mergeOpenHistory(loadOpenHistory(plugin.app), legacy ? raw.openHistory : null);
+  if (legacy) {
+    saveOpenHistory(plugin.app, plugin.openHistory);
+    await plugin.saveData(plugin.settings);
+  }
   return plugin.settings;
 }
 
@@ -255,6 +303,7 @@ module.exports = {
   STRINGS,
   normalizeSettings,
   loadSettings,
+  saveOpenHistory,
   resolveLanguage,
   isSupportedHeroImageExtension,
   formatCalendarDate,
@@ -295,6 +344,7 @@ const {
 const {
   STRINGS,
   loadSettings,
+  saveOpenHistory,
   resolveLanguage,
   formatCalendarDate,
   formatRelativeDate,
@@ -344,7 +394,7 @@ function parseNoteInput(input) {
   const segments = stripMdSuffix(input.trim())
     .split('/')
     .map((segment) => segment.replace(/[\\/:*?"<>|#^[\]]/g, ' ').replace(/\s+/g, ' ').trim())
-    .filter(Boolean);
+    .filter((segment) => segment && segment !== '.' && segment !== '..'); // «.» y «..» no pueden salir de la carpeta prevista
   return { folders: segments.slice(0, -1), name: segments[segments.length - 1] || '' };
 }
 
@@ -909,21 +959,22 @@ class HomeSettingTab extends PluginSettingTab {
 module.exports = class FoyerPlugin extends Plugin {
   async onload() {
     await loadSettings(this);
-    this.saveHistorySoon = debounce(() => this.saveData(this.settings), 2000, true);
+    // El historial se guarda en el almacenamiento local del dispositivo, no en data.json.
+    this.saveHistorySoon = debounce(() => saveOpenHistory(this.app, this.openHistory), 2000, true);
     this.register(() => this.saveHistorySoon.run?.());
 
     // Historial de aperturas: se registra antes que la vista para que ya esté al día al renderizar.
     const ws = this.app.workspace;
     this.registerEvent(ws.on('file-open', (file) => {
       if (!(file instanceof TFile)) return;
-      recordOpen(this.settings.openHistory, file.path, Date.now());
+      recordOpen(this.openHistory, file.path, Date.now());
       this.saveHistorySoon();
     }));
     this.registerEvent(this.app.vault.on('rename', (file, oldPath) => {
-      if (renameInHistory(this.settings.openHistory, oldPath, file.path)) this.saveHistorySoon();
+      if (renameInHistory(this.openHistory, oldPath, file.path)) this.saveHistorySoon();
     }));
     this.registerEvent(this.app.vault.on('delete', (file) => {
-      if (deleteFromHistory(this.settings.openHistory, file.path)) this.saveHistorySoon();
+      if (deleteFromHistory(this.openHistory, file.path)) this.saveHistorySoon();
     }));
 
     this.registerView(VIEW_TYPE, (leaf) => new HomeView(leaf, this));
@@ -938,7 +989,7 @@ module.exports = class FoyerPlugin extends Plugin {
       // El archivo activo restaurado al arrancar cuenta como abierto ahora.
       const active = ws.getActiveFile();
       if (active instanceof TFile) {
-        recordOpen(this.settings.openHistory, active.path, Date.now());
+        recordOpen(this.openHistory, active.path, Date.now());
         this.saveHistorySoon();
       }
       if (CONFIG.openOnStartup) await this.openHome();
@@ -951,7 +1002,7 @@ module.exports = class FoyerPlugin extends Plugin {
   }
 
   getLastOpened(path) {
-    return this.settings.openHistory[path] || null;
+    return this.openHistory[path] || null;
   }
 
   getEffectiveLanguage() {
