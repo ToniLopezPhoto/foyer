@@ -98,6 +98,10 @@ Open **Settings → Community plugins → Foyer** to adjust:
 | --- | --- |
 | Greeting name | Adds your name to the greeting; optional |
 | Language | Follows Obsidian automatically, or uses English or Spanish |
+| Open on startup | Shows Foyer when Obsidian starts (on by default); takes effect the next time Obsidian starts |
+| Replace new tabs | Turns empty new tabs into Foyer (on by default); turn it off if you use another home-page plugin. Takes effect immediately |
+| Recent notes | How many notes appear under Recent, from 3 to 20 (default 8) |
+| Search results | How many results appear while searching, from 3 to 20 (default 7) |
 | Hero image | Selects an existing vault image or imports one into your attachments folder |
 
 The hero image supports PNG, JPEG, GIF, WebP, AVIF, and BMP. Its position is shown in the settings preview. Without an image, Foyer displays a subtle symbol in your theme's accent color.

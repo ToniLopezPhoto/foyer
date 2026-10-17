@@ -14,7 +14,14 @@ const DEFAULT_SETTINGS = Object.freeze({
   name: '',
   language: 'auto',
   heroImagePath: '',
+  openOnStartup: true,   // abrir el inicio al arrancar Obsidian
+  replaceNewTab: true,   // las pestañas nuevas vacías muestran el inicio
+  recentLimit: 8,        // notas en «Recientes»
+  resultLimit: 7,        // resultados de búsqueda visibles
 });
+
+const LIMIT_MIN = 3;
+const LIMIT_MAX = 20;
 
 const HERO_IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'bmp']);
 const OPEN_HISTORY_LIMIT = 200;
@@ -41,6 +48,14 @@ const STRINGS = {
     languageAuto: 'Automático (idioma de Obsidian)',
     languageSpanish: 'Español',
     languageEnglish: 'English',
+    settingsOpenOnStartup: 'Abrir al iniciar',
+    settingsOpenOnStartupDescription: 'Muestra el inicio al arrancar Obsidian. El cambio se aplica la próxima vez que abras Obsidian.',
+    settingsReplaceNewTab: 'Reemplazar pestañas nuevas',
+    settingsReplaceNewTabDescription: 'Las pestañas nuevas vacías muestran el inicio. Desactívalo si usas otro plugin de página de inicio.',
+    settingsRecentLimit: 'Notas recientes',
+    settingsRecentLimitDescription: 'Cuántas notas se muestran en «Recientes» (de 3 a 20).',
+    settingsResultLimit: 'Resultados de búsqueda',
+    settingsResultLimitDescription: 'Cuántos resultados se muestran al buscar (de 3 a 20).',
     settingsImage: 'Imagen principal',
     settingsImageDescription: 'Elige una imagen del vault o súbela desde tu equipo (se copiará al vault). Formatos: PNG, JPEG, GIF, WebP, AVIF o BMP. SVG no está admitido.',
     chooseImage: 'Elegir del vault',
@@ -81,6 +96,14 @@ const STRINGS = {
     languageAuto: 'Automatic (Obsidian language)',
     languageSpanish: 'Español',
     languageEnglish: 'English',
+    settingsOpenOnStartup: 'Open on startup',
+    settingsOpenOnStartupDescription: 'Show the home page when Obsidian starts. Takes effect the next time you start Obsidian.',
+    settingsReplaceNewTab: 'Replace new tabs',
+    settingsReplaceNewTabDescription: 'Empty new tabs show the home page. Turn this off if you use another home-page plugin.',
+    settingsRecentLimit: 'Recent notes',
+    settingsRecentLimitDescription: 'How many notes appear under Recent (3 to 20).',
+    settingsResultLimit: 'Search results',
+    settingsResultLimitDescription: 'How many results appear while searching (3 to 20).',
     settingsImage: 'Hero image',
     settingsImageDescription: 'Pick an image from the vault or upload one from your computer (it will be copied into the vault). Formats: PNG, JPEG, GIF, WebP, AVIF, or BMP. SVG is not supported.',
     chooseImage: 'Choose from vault',
@@ -112,6 +135,16 @@ function normalizeOpenHistory(value) {
   return out;
 }
 
+// Entero dentro de [LIMIT_MIN, LIMIT_MAX]; cualquier valor que no sea un número finito usa el valor por defecto.
+function normalizeLimit(value, fallback) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return fallback;
+  return Math.min(LIMIT_MAX, Math.max(LIMIT_MIN, Math.round(value)));
+}
+
+function normalizeToggle(value, fallback) {
+  return typeof value === 'boolean' ? value : fallback;
+}
+
 // El historial vive en el almacenamiento local del dispositivo, nunca en data.json.
 function normalizeSettings(data) {
   const { openHistory: _legacyHistory, ...source } = data && typeof data === 'object' && !Array.isArray(data) ? data : {};
@@ -120,6 +153,10 @@ function normalizeSettings(data) {
     name: typeof source.name === 'string' ? source.name : DEFAULT_SETTINGS.name,
     language: ['auto', 'es', 'en'].includes(source.language) ? source.language : DEFAULT_SETTINGS.language,
     heroImagePath: typeof source.heroImagePath === 'string' ? source.heroImagePath : DEFAULT_SETTINGS.heroImagePath,
+    openOnStartup: normalizeToggle(source.openOnStartup, DEFAULT_SETTINGS.openOnStartup),
+    replaceNewTab: normalizeToggle(source.replaceNewTab, DEFAULT_SETTINGS.replaceNewTab),
+    recentLimit: normalizeLimit(source.recentLimit, DEFAULT_SETTINGS.recentLimit),
+    resultLimit: normalizeLimit(source.resultLimit, DEFAULT_SETTINGS.resultLimit),
   };
 }
 
@@ -300,6 +337,8 @@ function refreshViewPreservingSearch(view, documentObject) {
 
 module.exports = {
   DEFAULT_SETTINGS,
+  LIMIT_MIN,
+  LIMIT_MAX,
   STRINGS,
   normalizeSettings,
   loadSettings,
@@ -343,6 +382,8 @@ const {
 } = require('obsidian');
 const {
   STRINGS,
+  LIMIT_MIN,
+  LIMIT_MAX,
   loadSettings,
   saveOpenHistory,
   resolveLanguage,
@@ -362,14 +403,6 @@ const {
 } = homeSettingsModule.exports;
 
 const VIEW_TYPE = 'foyer';
-
-/* ── Configuración ───────────────────────────────────────────── */
-const CONFIG = {
-  recentLimit: 8,
-  resultLimit: 7,
-  openOnStartup: true,     // abrir el inicio al arrancar Obsidian
-  replaceNewTab: true,     // las pestañas nuevas vacías muestran el inicio
-};
 
 // Ocultar temporales de Syncthing, dotfiles y .tmp
 const IGNORED = /(^|\/)(~syncthing~|\.)|\.tmp$/;
@@ -573,7 +606,7 @@ class HomeView extends ItemView {
       if (!isListed(file) || seen.has(file.path)) continue;
       seen.add(file.path);
       out.push(file);
-      if (out.length >= CONFIG.recentLimit) break;
+      if (out.length >= this.plugin.settings.recentLimit) break;
     }
     return out;
   }
@@ -659,7 +692,7 @@ class HomeView extends ItemView {
       (b.match.score - a.match.score) ||
       (b.file.stat.mtime - a.file.stat.mtime));
 
-    for (const m of matches.slice(0, CONFIG.resultLimit)) {
+    for (const m of matches.slice(0, this.plugin.settings.resultLimit)) {
       const el = this.resultsEl.createDiv('foyer__item');
       setIcon(el.createSpan('foyer__item-icon'), iconFor(m.file));
       const body = el.createDiv('foyer__item-body');
@@ -847,6 +880,38 @@ class HomeSettingTab extends PluginSettingTab {
           this.display();
         }));
 
+    new Setting(containerEl)
+      .setName(strings.settingsOpenOnStartup)
+      .setDesc(strings.settingsOpenOnStartupDescription)
+      .addToggle((toggle) => toggle
+        .setValue(this.plugin.settings.openOnStartup)
+        .onChange((value) => this.plugin.updateSetting('openOnStartup', value)));
+
+    new Setting(containerEl)
+      .setName(strings.settingsReplaceNewTab)
+      .setDesc(strings.settingsReplaceNewTabDescription)
+      .addToggle((toggle) => toggle
+        .setValue(this.plugin.settings.replaceNewTab)
+        .onChange((value) => this.plugin.updateSetting('replaceNewTab', value)));
+
+    new Setting(containerEl)
+      .setName(strings.settingsRecentLimit)
+      .setDesc(strings.settingsRecentLimitDescription)
+      .addSlider((slider) => slider
+        .setLimits(LIMIT_MIN, LIMIT_MAX, 1)
+        .setValue(this.plugin.settings.recentLimit)
+        .setDynamicTooltip()
+        .onChange((value) => this.plugin.updateSetting('recentLimit', value)));
+
+    new Setting(containerEl)
+      .setName(strings.settingsResultLimit)
+      .setDesc(strings.settingsResultLimitDescription)
+      .addSlider((slider) => slider
+        .setLimits(LIMIT_MIN, LIMIT_MAX, 1)
+        .setValue(this.plugin.settings.resultLimit)
+        .setDynamicTooltip()
+        .onChange((value) => this.plugin.updateSetting('resultLimit', value)));
+
     const applyImage = async (file) => {
       await this.plugin.updateSetting('heroImagePath', file.path);
       new Notice(STRINGS[this.plugin.getEffectiveLanguage()].imageSelected);
@@ -992,12 +1057,11 @@ module.exports = class FoyerPlugin extends Plugin {
         recordOpen(this.openHistory, active.path, Date.now());
         this.saveHistorySoon();
       }
-      if (CONFIG.openOnStartup) await this.openHome();
-      if (CONFIG.replaceNewTab) {
-        this.registerEvent(this.app.workspace.on('layout-change', () => this.scheduleReplace()));
-        this.register(() => window.clearTimeout(this.replaceTimer));
-        this.scheduleReplace();
-      }
+      if (this.settings.openOnStartup) await this.openHome();
+      // El manejador se registra una sola vez; scheduleReplace respeta el ajuste en cada llamada.
+      this.registerEvent(this.app.workspace.on('layout-change', () => this.scheduleReplace()));
+      this.register(() => window.clearTimeout(this.replaceTimer));
+      this.scheduleReplace();
     });
   }
 
@@ -1011,6 +1075,7 @@ module.exports = class FoyerPlugin extends Plugin {
 
   async updateSetting(key, value) {
     await saveSettingAndRefresh(this, key, value);
+    if (key === 'replaceNewTab') this.scheduleReplace();
   }
 
   // Copia una imagen elegida en el equipo dentro del vault (carpeta de adjuntos) y devuelve el TFile.
@@ -1038,9 +1103,12 @@ module.exports = class FoyerPlugin extends Plugin {
 
   // Convierte la pestaña vacía activa ("Nueva pestaña") en el inicio.
   // Con retardo y re-comprobación para no pisar archivos que se están abriendo.
+  // Con el ajuste desactivado cancela cualquier conversión pendiente y no programa otra.
   scheduleReplace() {
     window.clearTimeout(this.replaceTimer);
+    if (!this.settings.replaceNewTab) return;
     this.replaceTimer = window.setTimeout(() => {
+      if (!this.settings.replaceNewTab) return;
       const ws = this.app.workspace;
       const leaf = ws.getMostRecentLeaf(ws.rootSplit);
       if (leaf && leaf.view?.getViewType() === 'empty') {

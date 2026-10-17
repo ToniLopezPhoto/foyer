@@ -66,9 +66,9 @@ Route evidence: every task edits `main.js` plus at most a test file, `styles.css
 - Acceptance: tests prove opens never call `saveData`, migration merges and strips, rename/delete still update history.
 
 ### T3 — Configurable options
-- [ ] Settings: "Open on startup" (toggle), "Replace new tabs" (toggle), "Recent notes" (number, 3–20), "Search results" (number, 3–20). Defaults match current behavior.
-- [ ] Toggling "Replace new tabs" takes effect without reload (register/unregister the `layout-change` handler).
-- [ ] Strings in `es` and `en`; README settings section updated.
+- [x] Settings: "Open on startup" (toggle), "Replace new tabs" (toggle), "Recent notes" (number, 3–20), "Search results" (number, 3–20). Defaults match current behavior.
+- [x] Toggling "Replace new tabs" takes effect without reload (register/unregister the `layout-change` handler).
+- [x] Strings in `es` and `en`; README settings section updated.
 - Acceptance: tests cover normalization of the new settings and the live toggle.
 
 ### T4 — Search performance
@@ -109,7 +109,7 @@ Route evidence: every task edits `main.js` plus at most a test file, `styles.css
 |---|---|---|---|---|
 | T1 | done | `532754c` | `node --test tests/*.test.cjs`: 17/17 pass (RED observed first on 9); `node --check main.js` OK; `git diff --check` OK | high (workflow shell); consent granted; 4 lenses approved, acknowledged (lineage `review-0e04b31a58d5e840`); 10 advisory findings moved to T7 |
 | T2 | done | `e13b717` | `node --test tests/*.test.cjs`: 33/33 pass (RED observed first on 15: 13 history + 2 `parseNoteInput`); `node --check main.js` OK; `git diff --check` OK; coordinator re-ran tests: 33/33 | medium, under budget (350 lines from `532754c`): pending in slice |
-| T3 | pending | | | |
+| T3 | done | (this commit) | `node --test tests/*.test.cjs`: 52/52 pass (RED observed first on 14 of the 19 new tests); `node --check main.js` OK; `git diff --check` OK | pending: coordinator |
 | T4 | pending | | | |
 | T5 | pending | | | |
 | T6 | pending | | | |
@@ -117,4 +117,4 @@ Route evidence: every task edits `main.js` plus at most a test file, `styles.css
 
 ## Next step
 
-T3 in a Sonnet 5.5 session.
+T4 in a Sonnet 5.5 session.

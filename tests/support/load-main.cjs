@@ -37,6 +37,7 @@ function createElement(options = {}) {
     text: '',
     value: '',
     hidden: false,
+    style: {},
     children: [],
     attributes: {},
     classes: new Set(),
@@ -80,6 +81,23 @@ function createMoment(clock) {
   };
 }
 
+// Componentes de ajuste (toggle, slider...) que solo registran lo que la pestaña de ajustes les pide.
+function createSettingComponent(type) {
+  const component = {
+    type,
+    value: undefined,
+    setValue(value) { component.value = value; return component; },
+    onChange(handler) { component.changeHandler = handler; return component; },
+    setLimits(min, max, step) { component.limits = [min, max, step]; return component; },
+    setDynamicTooltip() { component.dynamicTooltip = true; return component; },
+    addOption() { return component; },
+    setButtonText() { return component; },
+    setCta() { return component; },
+    onClick(handler) { component.clickHandler = handler; return component; },
+  };
+  return component;
+}
+
 // Con deferDebounce, las llamadas a debounce() quedan pendientes hasta llamar a .run(), como en Obsidian.
 function loadMain({ deferDebounce = false } = {}) {
   const notices = [];
@@ -90,10 +108,41 @@ function loadMain({ deferDebounce = false } = {}) {
     getHours() { return clock.hour; }
   }
 
+  // Cada Setting creado queda registrado en settingsLog, en orden de creación.
+  const settingsLog = [];
+  class Setting {
+    constructor(containerEl) {
+      this.containerEl = containerEl;
+      this.components = [];
+      settingsLog.push(this);
+    }
+
+    setName(name) { this.name = name; return this; }
+    setDesc(desc) { this.desc = desc; return this; }
+    addComponent(type, callback) {
+      const component = createSettingComponent(type);
+      this.components.push(component);
+      callback(component);
+      return this;
+    }
+
+    addText(callback) { return this.addComponent('text', callback); }
+    addDropdown(callback) { return this.addComponent('dropdown', callback); }
+    addButton(callback) { return this.addComponent('button', callback); }
+    addToggle(callback) { return this.addComponent('toggle', callback); }
+    addSlider(callback) { return this.addComponent('slider', callback); }
+  }
+
   const obsidian = {
     Plugin: class {},
-    PluginSettingTab: class {},
-    Setting: class {},
+    PluginSettingTab: class {
+      constructor(app, plugin) {
+        this.app = app;
+        this.plugin = plugin;
+        this.containerEl = createElement();
+      }
+    },
+    Setting,
     FuzzySuggestModal: class {},
     ItemView: class {
       constructor(leaf) {
@@ -143,10 +192,12 @@ function loadMain({ deferDebounce = false } = {}) {
       return timers.intervals.length;
     },
     setTimeout(fn, ms) {
-      timers.timeouts.push({ fn, ms });
+      timers.timeouts.push({ fn, ms, cancelled: false, fired: false });
       return timers.timeouts.length;
     },
-    clearTimeout() {},
+    clearTimeout(id) {
+      if (timers.timeouts[id - 1]) timers.timeouts[id - 1].cancelled = true;
+    },
   };
 
   const context = vm.createContext({
@@ -156,17 +207,18 @@ function loadMain({ deferDebounce = false } = {}) {
       return obsidian;
     },
     window,
+    document: { activeElement: null },
     Date: FakeDate,
     createSvg: (tag, options) => createElement(normalizeOptions(options)),
   });
 
   const source = readFileSync(join(__dirname, '..', '..', 'main.js'), 'utf8');
   vm.runInContext(
-    `${source}\nmodule.exports = { HomeView, FoyerPlugin: module.exports };`,
+    `${source}\nmodule.exports = { HomeView, HomeSettingTab, FoyerPlugin: module.exports, settingsModule: homeSettingsModule.exports };`,
     context,
   );
-  const { HomeView, FoyerPlugin } = context.module.exports;
-  return { HomeView, FoyerPlugin, TFile, TFolder, clock, notices, timers };
+  const { HomeView, HomeSettingTab, FoyerPlugin, settingsModule } = context.module.exports;
+  return { HomeView, HomeSettingTab, FoyerPlugin, settingsModule, TFile, TFolder, clock, notices, timers, settingsLog };
 }
 
 module.exports = { createElement, loadMain };
