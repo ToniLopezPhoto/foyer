@@ -2,6 +2,8 @@ name: Release
 
 # Push a tag that matches manifest.json "version" (e.g. 1.0.0, no "v" prefix)
 # and this workflow creates a draft GitHub release with the plugin files attached.
+# The release assets get build provenance attestations, verifiable with
+# `gh attestation verify <file> --repo ToniLopezPhoto/foyer`.
 on:
   push:
     tags:
@@ -9,6 +11,8 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 jobs:
   release:
@@ -31,6 +35,14 @@ jobs:
 
       - name: Unit tests
         run: node --test tests/*.test.cjs
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: |
+            main.js
+            manifest.json
+            styles.css
 
       - name: Create draft release
         env:
