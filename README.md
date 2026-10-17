@@ -123,6 +123,10 @@ Foyer runs locally. It makes no network requests, includes no analytics, and doe
 
 Settings are saved in `.obsidian/plugins/foyer/data.json` inside your vault. The small last-opened history (up to 200 entries) stays on this device only, in Obsidian's local storage for this vault. It is kept outside `data.json`, so it is not synced and does not cause sync conflicts. Images you import stay in your vault.
 
+**Vault access.** To power search, Foyer lists the files in your vault with Obsidian's `vault.getFiles()`. That list is built the first time you search, kept in memory, and refreshed when files change. The hero image picker lists your vault's image files too, only when you open it in the settings. Foyer uses file names, paths and the `aliases` from Obsidian's metadata cache; it does not read the contents of your notes for this. Files in Obsidian's **Excluded files** do not appear in search results. Nothing leaves your device.
+
+**Release provenance.** Release files published from now on carry GitHub build provenance attestations, so you can check that `main.js`, `styles.css` and `manifest.json` were built from this repository, for example with `gh attestation verify main.js --repo ToniLopezPhoto/foyer`. This does not apply to 1.1.0 and earlier releases.
+
 ## Development and contributions
 
 Foyer is intentionally lightweight: plain JavaScript and CSS, with no build step or runtime dependencies beyond Obsidian.
@@ -152,7 +156,7 @@ Issues, bug reports, and pull requests are welcome via [GitHub Issues](https://g
 
 **Instalación:** Foyer ya tiene [ficha pública en el directorio de Obsidian](https://community.obsidian.md/plugins/foyer). La instalación directa estará disponible cuando supere la revisión automática. Mientras tanto, utiliza [BRAT](https://github.com/TfTHacker/obsidian42-brat) e introduce `ToniLopezPhoto/foyer`, o descarga `main.js`, `manifest.json` y `styles.css` de la [última versión](https://github.com/ToniLopezPhoto/foyer/releases/latest) y colócalos en `.obsidian/plugins/foyer/`.
 
-Los ajustes y el historial de apertura se almacenan únicamente en tu vault. Foyer no recopila telemetría ni envía datos a servicios externos.
+Los ajustes y el historial de apertura se almacenan únicamente en tu vault. Foyer no recopila telemetría ni envía datos a servicios externos. Para la búsqueda, Foyer lista en memoria los archivos de tu vault (nombres, rutas y `aliases` de la caché de metadatos de Obsidian) y, solo cuando abres el selector de imagen, tus imágenes; no lee el contenido de tus notas para ello, y los **archivos excluidos** de Obsidian no aparecen en los resultados. Nada sale de tu dispositivo.
 
 ## License
 

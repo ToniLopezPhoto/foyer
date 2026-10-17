@@ -48,13 +48,13 @@ T1 and T2 touch different files and run in parallel; T3 runs after T1.
 - Acceptance: valid YAML; permissions and step present; existing checks unchanged.
 
 ### T3 — Vault enumeration disclosure
-- [ ] README "Privacy, by design": explain that Foyer lists the vault's file paths (`vault.getFiles`) locally to power search (built when you search, cached, refreshed on file changes) and the hero image picker; it reads names, paths and frontmatter aliases, not file contents; nothing leaves the device; Obsidian "Excluded files" are hidden from results.
-- [ ] Same disclosure, concise, in the Spanish section.
-- [ ] Add a one-line note on verifying release provenance with `gh attestation verify`.
+- [x] README "Privacy, by design": explain that Foyer lists the vault's file paths (`vault.getFiles`) locally to power search (built when you search, cached, refreshed on file changes) and the hero image picker; it reads names, paths and frontmatter aliases, not file contents; nothing leaves the device; Obsidian "Excluded files" are hidden from results.
+- [x] Same disclosure, concise, in the Spanish section.
+- [x] Add a one-line note on verifying release provenance with `gh attestation verify`.
 - Acceptance: both languages cover enumeration; claims match `main.js`.
 
 ## Progress
 
 - T1 done: `# Foyer` added after banner `</p>` in `README.md` (line 5). Checks: `grep -n -m1 '^# ' README.md` → `5:# Foyer`; `git diff --check` exit 0; `node --check main.js` exit 0.
 - T2 done (workflow only): `actions/attest-build-provenance@v4` (latest release v4.2.2; v4 is a wrapper over `actions/attest`, which the README recommends for new implementations, but the existing action remains supported; source: https://github.com/actions/attest-build-provenance and its /releases page). Permissions `contents`, `id-token`, `attestations: write`; `create-storage-record` needs `push-to-registry`, so `artifact-metadata` is not required. Checks: PyYAML `safe_load` ok (permissions and step order verified, `subject-path` = main.js, manifest.json, styles.css); `git diff --check` exit 0; `node --check main.js` exit 0; `node --test tests/*.test.cjs` 134 pass, 0 fail. README verify note deferred to T3.
-- T3: not started.
+- T3 done: README "Privacy, by design" gained "Vault access" and "Release provenance" paragraphs (provenance scoped to releases after 1.1.0); Spanish privacy paragraph extended with the same disclosure. Claims checked against `main.js`: `getListedEntries` (lazy, cached in `listedEntries`, invalidated on vault create/delete/rename and `metadataCache` `changed`, skips `isUserIgnored`, aliases from `getFileCache(...).frontmatter`) and `getSupportedHeroFiles(vault.getFiles())` in the image picker. Checks: `grep -n -m1 '^# ' README.md` → `5:# Foyer`; `git diff --check` exit 0; `node --check main.js` exit 0; `node --test tests/*.test.cjs` 134 pass, 0 fail.
