@@ -122,6 +122,7 @@ async function createFixture({ specs = buildFixtureSpecs(), resultLimit = 7, ani
   const view = new main.HomeView(leaf, plugin);
   view.app = {
     vault,
+    metadataCache: { on: () => ({}), getFileCache: () => null },
     workspace: { on: () => ({}), getLastOpenFiles: () => [], getActiveViewOfType: () => null },
   };
   await view.onOpen();

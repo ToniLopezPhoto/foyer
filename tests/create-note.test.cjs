@@ -39,11 +39,12 @@ function createFixture({ files = [], folders = [], newFileParent = '' } = {}) {
   const leaf = {
     openFile: async (file, options) => { opened.push({ file, options }); },
   };
-  const plugin = { settings: { name: 'Toni' }, getEffectiveLanguage: () => 'en' };
+  const plugin = { settings: { name: 'Toni' }, getEffectiveLanguage: () => 'en', getLastOpened: () => null };
   const view = new HomeView(leaf, plugin);
   view.app = {
     vault,
     fileManager,
+    metadataCache: { getFileCache: () => null },
     workspace: { getActiveFile: () => null, getLastOpenFiles: () => [], on: () => ({}) },
   };
   return { view, vault, fileManager, opened };

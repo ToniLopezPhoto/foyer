@@ -79,9 +79,9 @@ Route evidence: every task edits `main.js` plus at most a test file, `styles.css
 - Acceptance: tests prove identical ranking to the previous algorithm on a fixture vault, cache invalidation, and narrowing; a simple timing test on ~50k synthetic files is reported (not asserted).
 
 ### T5 — Search quality
-- [ ] Match frontmatter `aliases` (string or array) from `metadataCache`; show the matched alias with the file name.
-- [ ] Hide files matched by Obsidian "Excluded files" when `metadataCache.isUserIgnored` exists.
-- [ ] Recency boost from the open history as a tie-breaker ahead of `mtime`, without overriding name-vs-path priority.
+- [x] Match frontmatter `aliases` (string or array; also the legacy `alias` key) from `metadataCache`; show the matched alias with the file name. Alias data is cached with the listed entries and invalidated on `metadataCache` `changed`.
+- [x] Hide files matched by Obsidian "Excluded files" when `metadataCache.isUserIgnored` exists (feature-detected, errors count as not ignored).
+- [x] Recency boost from the open history as a tie-breaker ahead of `mtime`, without overriding name-vs-path priority or score.
 - Acceptance: tests for alias matching, excluded-file filtering (with and without the API), and recency ordering.
 
 ### T6 — Recents, keyboard, accessibility
@@ -110,11 +110,11 @@ Route evidence: every task edits `main.js` plus at most a test file, `styles.css
 | T1 | done | `532754c` | `node --test tests/*.test.cjs`: 17/17 pass (RED observed first on 9); `node --check main.js` OK; `git diff --check` OK | high (workflow shell); consent granted; 4 lenses approved, acknowledged (lineage `review-0e04b31a58d5e840`); 10 advisory findings moved to T7 |
 | T2 | done | `e13b717` | `node --test tests/*.test.cjs`: 33/33 pass (RED observed first on 15: 13 history + 2 `parseNoteInput`); `node --check main.js` OK; `git diff --check` OK; coordinator re-ran tests: 33/33 | slice T2+T3 (from `532754c`, 893 lines): medium, budget reached; consent declined by user |
 | T3 | done | `4aff88d` | `node --test tests/*.test.cjs`: 52/52 pass (RED observed first on 14 of the 19 new tests); `node --check main.js` OK; `git diff --check` OK; coordinator re-ran tests: 52/52 | slice T2+T3: medium; consent declined by user (boundary advances to `4aff88d`) |
-| T4 | done | (this commit) | `node --test tests/*.test.cjs`: 73/73 pass (21 new in `tests/search-performance.test.cjs`; RED observed first on 6 of them: coalescing x2, narrowing x2, cache reuse, close cleanup); `node --check main.js` OK; `git diff --check` OK; timing on 50,000 synthetic files with a subsequence matcher stub, per search while typing `notera`: before 45.1 / 37.9 / 19.6 / 17.3 / 13.2 / 16.4 ms, after 29.2 / 3.3 / 5.1 / 1.5 / 0.9 / 0.2 ms (first keystroke is a full scan; a non-prefix edit rescans, 11.2 ms) | |
-| T5 | pending | | | |
+| T4 | done | `1e494d1` | `node --test tests/*.test.cjs`: 73/73 pass (21 new in `tests/search-performance.test.cjs`; RED observed first on 6 of them: coalescing x2, narrowing x2, cache reuse, close cleanup); `node --check main.js` OK; `git diff --check` OK; timing on 50,000 synthetic files with a subsequence matcher stub, per search while typing `notera`: before 45.1 / 37.9 / 19.6 / 17.3 / 13.2 / 16.4 ms, after 29.2 / 3.3 / 5.1 / 1.5 / 0.9 / 0.2 ms (first keystroke is a full scan; a non-prefix edit rescans, 11.2 ms) | medium (671 lines from 4aff88d); consent declined by user |
+| T5 | done | (this commit) | `node --test tests/*.test.cjs`: 94/94 pass (21 new in `tests/search-quality.test.cjs`; RED observed first on 17 of them, the other 4 are regression guards); `node --check main.js` OK; `git diff --check` OK. Stubs: `metadataCache` added to the view fixtures of the existing tests; `renderMatches` stub now writes the text. `tests/search-performance.test.cjs` reference ranking unchanged (its plugin stub has no history) | |
 | T6 | pending | | | |
 | T7 | pending | | | |
 
 ## Next step
 
-T4 in a Sonnet 5.5 session.
+T6 in a Sonnet 5.5 session.

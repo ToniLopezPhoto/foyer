@@ -182,7 +182,7 @@ function loadMain({ deferDebounce = false, fuzzy = null, animationFrames = false
     prepareFuzzySearch: fuzzy || ((query) => (text) => (
       text.toLowerCase().includes(query.toLowerCase()) ? { score: 1, matches: [] } : null
     )),
-    renderMatches() {},
+    renderMatches(el, text) { el.setText(text); },
     setIcon() {},
     moment: createMoment(clock),
     getLanguage: () => 'en',

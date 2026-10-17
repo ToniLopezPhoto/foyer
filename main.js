@@ -419,16 +419,31 @@ const isListed = (f) => f instanceof TFile && !IGNORED.test(f.path);
 const displayName = (f) => (f.extension === 'md' ? f.basename : f.name);
 const folderOf = (f) => (f.parent && !f.parent.isRoot() ? f.parent.path : '');
 
-// Orden de los resultados: coincidencia en el nombre, mayor puntuación y archivo más reciente.
-// Devuelve < 0 si el candidato (onName, score, mtime) va antes que `other`; 0 si empatan.
-const compareRank = (onName, score, mtime, other) =>
-  (other.onName - onName) || (other.match.score - score) || (other.file.stat.mtime - mtime);
+// Alias de la nota según su frontmatter (`aliases`, o el antiguo `alias`): texto o lista; como hace Obsidian,
+// un texto se separa por comas. Se descartan los valores vacíos y los que no son texto ni número.
+function readAliases(frontmatter) {
+  const raw = frontmatter && (frontmatter.aliases ?? frontmatter.alias);
+  const values = typeof raw === 'string' ? raw.split(',') : Array.isArray(raw) ? raw : [];
+  const aliases = [];
+  for (const value of values) {
+    if (typeof value !== 'string' && typeof value !== 'number') continue;
+    const alias = String(value).trim();
+    if (alias) aliases.push(alias);
+  }
+  return aliases;
+}
+
+// Orden de los resultados: coincidencia en el nombre, mayor puntuación, apertura más reciente
+// (historial del plugin; 0 si nunca se abrió) y archivo modificado más recientemente.
+// Devuelve < 0 si el candidato (onName, score, opened, mtime) va antes que `other`; 0 si empatan.
+const compareRank = (onName, score, opened, mtime, other) =>
+  (other.onName - onName) || (other.match.score - score) || (other.opened - opened) || (other.file.stat.mtime - mtime);
 
 // Inserta `item` en `top` (ordenado, como máximo `limit` elementos) detrás de los que empatan con él.
 // Equivale a ordenar todas las coincidencias con un sort estable y quedarse con las primeras.
 function insertTop(top, item, limit) {
   let at = top.length;
-  while (at > 0 && compareRank(item.onName, item.match.score, item.file.stat.mtime, top[at - 1]) < 0) at--;
+  while (at > 0 && compareRank(item.onName, item.match.score, item.opened, item.file.stat.mtime, top[at - 1]) < 0) at--;
   top.splice(at, 0, item);
   if (top.length > limit) top.pop();
 }
@@ -485,7 +500,7 @@ class HomeView extends ItemView {
     this.navigation = true; // abrir un archivo desde el explorador reemplaza el inicio
     this.items = [];
     this.selected = -1;
-    this.listedEntries = null; // caché de archivos listados: { file, name }, en el orden de vault.getFiles()
+    this.listedEntries = null; // caché de archivos listados: { file, name, aliases }, en el orden de vault.getFiles()
     this.searchState = null; // { query, pool }: candidatos de la última búsqueda para acotar la siguiente
     this.pendingSearch = null; // { cancel }: búsqueda programada para el próximo frame
     this.refreshRecentSoon = debounce(() => this.renderRecent(), 150, true);
@@ -551,6 +566,8 @@ class HomeView extends ItemView {
     for (const name of ['create', 'delete', 'rename']) {
       this.registerEvent(this.app.vault.on(name, () => this.invalidateSearchCache()));
     }
+    // Los alias salen del frontmatter: si cambian los metadatos, también hay que leerlos de nuevo.
+    this.registerEvent(this.app.metadataCache.on('changed', () => this.invalidateSearchCache()));
     this.registerEvent(ws.on('active-leaf-change', (leaf) => {
       if (leaf === this.leaf) {
         this.refresh();
@@ -720,12 +737,26 @@ class HomeView extends ItemView {
     this.searchState = null;
   }
 
-  // Archivos listados (isListed ya aplicado) con su nombre visible; se reconstruye tras invalidar.
+  // «Archivos excluidos» de Obsidian (API no documentada): ante cualquier fallo, el archivo cuenta como no excluido.
+  isExcluded(file) {
+    const cache = this.app.metadataCache;
+    if (typeof cache.isUserIgnored !== 'function') return false;
+    try {
+      return Boolean(cache.isUserIgnored(file.path));
+    } catch (error) {
+      return false;
+    }
+  }
+
+  // Archivos listados (isListed ya aplicado, sin los excluidos) con su nombre visible y sus alias;
+  // se reconstruye tras invalidar.
   getListedEntries() {
     if (!this.listedEntries) {
       const entries = [];
       for (const file of this.app.vault.getFiles()) {
-        if (isListed(file)) entries.push({ file, name: displayName(file) });
+        if (!isListed(file) || this.isExcluded(file)) continue;
+        const aliases = file.extension === 'md' ? readAliases(this.app.metadataCache.getFileCache(file)?.frontmatter) : [];
+        entries.push({ file, name: displayName(file), aliases });
       }
       this.listedEntries = entries;
     }
@@ -733,24 +764,36 @@ class HomeView extends ItemView {
   }
 
   // Recorre `pool` (en el orden del vault) y devuelve las mejores `limit` coincidencias, todas las
-  // entradas que coinciden (candidatos de la siguiente búsqueda) y si alguna se llama exactamente `exactName`.
+  // entradas que coinciden (candidatos de la siguiente búsqueda) y si alguna se llama (o tiene un alias)
+  // exactamente `exactName`. Se prueba el nombre, luego cada alias y por último la ruta; un alias cuenta como el nombre.
   searchPool(pool, fuzzy, limit, exactName) {
     const top = [];
     const matched = [];
     let exact = false;
     for (const entry of pool) {
       let onName = true;
+      let alias = null;
       let match = fuzzy(entry.name);
+      if (!match) {
+        for (const candidate of entry.aliases) {
+          match = fuzzy(candidate);
+          if (match) {
+            alias = candidate;
+            break;
+          }
+        }
+      }
       if (!match) {
         onName = false;
         match = fuzzy(entry.file.path);
         if (!match) continue;
       }
       matched.push(entry);
-      if (!exact && entry.name.toLowerCase() === exactName) exact = true;
+      if (!exact && (entry.name.toLowerCase() === exactName || entry.aliases.some((a) => a.toLowerCase() === exactName))) exact = true;
+      const opened = this.plugin.getLastOpened(entry.file.path) || 0;
       // Con la lista llena, solo entra quien supera estrictamente al último (los empates conservan el orden del vault).
-      if (top.length >= limit && compareRank(onName, match.score, entry.file.stat.mtime, top[limit - 1]) >= 0) continue;
-      insertTop(top, { file: entry.file, name: entry.name, onName, match }, limit);
+      if (top.length >= limit && compareRank(onName, match.score, opened, entry.file.stat.mtime, top[limit - 1]) >= 0) continue;
+      insertTop(top, { file: entry.file, name: entry.name, alias, onName, opened, match }, limit);
     }
     return { top, matched, exact };
   }
@@ -786,7 +829,11 @@ class HomeView extends ItemView {
       const title = body.createSpan('foyer__item-title');
       const folder = folderOf(m.file);
 
-      if (m.onName) {
+      if (m.alias) {
+        // Coincidencia por alias: se resalta el alias y debajo van el nombre real de la nota y su carpeta.
+        renderMatches(title, m.alias, m.match.matches);
+        body.createSpan({ cls: 'foyer__item-path', text: folder ? `${m.name} · ${folder}` : m.name });
+      } else if (m.onName) {
         renderMatches(title, m.name, m.match.matches);
         if (folder) body.createSpan({ cls: 'foyer__item-path', text: folder });
       } else {

@@ -13,6 +13,7 @@ async function openView() {
   const view = new main.HomeView({}, plugin);
   view.app = {
     vault: { on: () => ({}), getAbstractFileByPath: () => null, getFiles: () => [] },
+    metadataCache: { on: () => ({}), getFileCache: () => null },
     workspace: { on: () => ({}), getLastOpenFiles: () => [], getActiveViewOfType: () => null },
   };
   await view.onOpen();
