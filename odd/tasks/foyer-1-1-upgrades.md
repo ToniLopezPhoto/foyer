@@ -85,10 +85,10 @@ Route evidence: every task edits `main.js` plus at most a test file, `styles.css
 - Acceptance: tests for alias matching, excluded-file filtering (with and without the API), and recency ordering.
 
 ### T6 — Recents, keyboard, accessibility
-- [ ] Recents ordered by the plugin's open history (most recent first), falling back to `getLastOpenFiles()` when history is empty; limit from settings.
-- [ ] With an empty query, ↑/↓/Enter (and Mod+Enter) navigate and open recents.
-- [ ] ARIA: input `role="combobox"` with `aria-controls`/`aria-expanded`/`aria-activedescendant`; result and recent lists `role="listbox"`, rows `role="option"` with `aria-selected`.
-- [ ] Hover preview (`hover-link`) on file search results, matching recents.
+- [x] Recents ordered by the plugin's open history (most recent first), falling back to `getLastOpenFiles()` when history is empty; limit from settings.
+- [x] With an empty query, ↑/↓/Enter (and Mod+Enter) navigate and open recents.
+- [x] ARIA: input `role="combobox"` with `aria-controls`/`aria-expanded`/`aria-activedescendant`; result and recent lists `role="listbox"`, rows `role="option"` with `aria-selected`.
+- [x] Hover preview (`hover-link`) on file search results, matching recents.
 - Acceptance: tests for ordering, fallback, keyboard navigation, and ARIA attributes.
 
 ### T7 — Version 1.1.0 + README
@@ -111,8 +111,8 @@ Route evidence: every task edits `main.js` plus at most a test file, `styles.css
 | T2 | done | `e13b717` | `node --test tests/*.test.cjs`: 33/33 pass (RED observed first on 15: 13 history + 2 `parseNoteInput`); `node --check main.js` OK; `git diff --check` OK; coordinator re-ran tests: 33/33 | slice T2+T3 (from `532754c`, 893 lines): medium, budget reached; consent declined by user |
 | T3 | done | `4aff88d` | `node --test tests/*.test.cjs`: 52/52 pass (RED observed first on 14 of the 19 new tests); `node --check main.js` OK; `git diff --check` OK; coordinator re-ran tests: 52/52 | slice T2+T3: medium; consent declined by user (boundary advances to `4aff88d`) |
 | T4 | done | `1e494d1` | `node --test tests/*.test.cjs`: 73/73 pass (21 new in `tests/search-performance.test.cjs`; RED observed first on 6 of them: coalescing x2, narrowing x2, cache reuse, close cleanup); `node --check main.js` OK; `git diff --check` OK; timing on 50,000 synthetic files with a subsequence matcher stub, per search while typing `notera`: before 45.1 / 37.9 / 19.6 / 17.3 / 13.2 / 16.4 ms, after 29.2 / 3.3 / 5.1 / 1.5 / 0.9 / 0.2 ms (first keystroke is a full scan; a non-prefix edit rescans, 11.2 ms) | medium (671 lines from 4aff88d); consent declined by user |
-| T5 | done | (this commit) | `node --test tests/*.test.cjs`: 94/94 pass (21 new in `tests/search-quality.test.cjs`; RED observed first on 17 of them, the other 4 are regression guards); `node --check main.js` OK; `git diff --check` OK. Stubs: `metadataCache` added to the view fixtures of the existing tests; `renderMatches` stub now writes the text. `tests/search-performance.test.cjs` reference ranking unchanged (its plugin stub has no history) | |
-| T6 | pending | | | |
+| T5 | done | `ce1d82f` | `node --test tests/*.test.cjs`: 94/94 pass (21 new in `tests/search-quality.test.cjs`; RED observed first on 17 of them, the other 4 are regression guards); `node --check main.js` OK; `git diff --check` OK. Stubs: `metadataCache` added to the view fixtures of the existing tests; `renderMatches` stub now writes the text. `tests/search-performance.test.cjs` reference ranking unchanged (its plugin stub has no history) | medium (459 lines from 1e494d1); consent declined by user |
+| T6 | done | (this commit) | `node --test tests/*.test.cjs`: 125/125 pass (31 new in `tests/recents-keyboard.test.cjs`; RED observed first on 21 of them, the other 10 are regression guards); `node --check main.js` OK; `git diff --check` OK. Stubs: `tests/support/load-main.cjs` elements now record listeners (`dispatch`) and have `getAttribute`; `tests/navigation.test.cjs` adapted to the new `addItem(list, el, run, file)` signature | |
 | T7 | pending | | | |
 
 ## Next step

@@ -88,9 +88,9 @@ test('search-result clicks, middle clicks, and Enter use the same navigation', a
   for (const trigger of ['click', 'auxclick', 'Enter']) {
     const state = setup({ redirect: true, mode: trigger === 'auxclick' ? 'tab' : false });
     const listeners = {};
-    const el = { addEventListener: (type, callback) => { listeners[type] = callback; } };
+    const el = { addEventListener: (type, callback) => { listeners[type] = callback; }, setAttribute() {} };
     let navigation;
-    state.view.addItem(el, (mode) => {
+    state.view.addItem(state.view.items, el, (mode) => {
       navigation = state.view.openFile(state.file, mode);
       return navigation;
     });

@@ -403,6 +403,7 @@ const {
 } = homeSettingsModule.exports;
 
 const VIEW_TYPE = 'foyer';
+let viewCounter = 0; // para que los ids ARIA de cada vista sean únicos
 
 // Ocultar temporales de Syncthing, dotfiles y .tmp
 const IGNORED = /(^|\/)(~syncthing~|\.)|\.tmp$/;
@@ -498,8 +499,11 @@ class HomeView extends ItemView {
     super(leaf);
     this.plugin = plugin;
     this.navigation = true; // abrir un archivo desde el explorador reemplaza el inicio
-    this.items = [];
-    this.selected = -1;
+    this.uid = `foyer-${++viewCounter}`;
+    this.items = []; // filas de resultados (búsqueda)
+    this.recentItems = []; // filas de «Recientes»
+    this.hasQuery = false; // true: la lista activa son los resultados; false: los recientes
+    this.selected = -1; // índice dentro de la lista activa
     this.listedEntries = null; // caché de archivos listados: { file, name, aliases }, en el orden de vault.getFiles()
     this.searchState = null; // { query, pool }: candidatos de la última búsqueda para acotar la siguiente
     this.pendingSearch = null; // { cancel }: búsqueda programada para el próximo frame
@@ -539,11 +543,14 @@ class HomeView extends ItemView {
         spellcheck: 'false',
         autocomplete: 'off',
         'aria-label': '',
+        role: 'combobox',
+        'aria-autocomplete': 'list',
+        'aria-expanded': 'false',
       },
     });
     box.createEl('kbd', { cls: 'foyer__kbd', text: '↵' });
 
-    this.resultsEl = search.createDiv('foyer__results');
+    this.resultsEl = search.createDiv({ cls: 'foyer__results', attr: { role: 'listbox', id: `${this.uid}-results` } });
 
     const help = search.createDiv('foyer__help');
     this.helpEl = help;
@@ -552,7 +559,7 @@ class HomeView extends ItemView {
     const recent = this.wrapEl.createDiv('foyer__recent');
     this.recentLabelEl = recent.createDiv('foyer__section-head')
       .createSpan({ cls: 'foyer__label' });
-    this.recentEl = recent.createDiv('foyer__list');
+    this.recentEl = recent.createDiv({ cls: 'foyer__list', attr: { role: 'listbox', id: `${this.uid}-recent` } });
 
     // Eventos
     this.registerDomEvent(this.inputEl, 'input', () => this.scheduleSearch());
@@ -596,6 +603,8 @@ class HomeView extends ItemView {
     this.inputEl.placeholder = strings.searchPlaceholder;
     this.inputEl.setAttribute('aria-label', strings.searchLabel);
     this.recentLabelEl.setText(strings.recent);
+    this.recentEl.setAttribute('aria-label', strings.recent);
+    this.resultsEl.setAttribute('aria-label', strings.searchLabel);
     const mod = Platform.isMacOS ? '⌘' : 'Ctrl';
     this.helpEl.empty();
     strings.keyboardHelp.forEach((item) => this.helpEl.createSpan({ text: typeof item === 'function' ? item(mod) : item }));
@@ -638,26 +647,40 @@ class HomeView extends ItemView {
   }
 
   /* ── Recientes ── */
-  getRecentFiles() {
+  // Primeros `limit` archivos de `paths` que existen, se listan y no están excluidos (sin repetir rutas).
+  resolveRecent(paths, limit) {
     const out = [];
     const seen = new Set();
-    for (const path of this.app.workspace.getLastOpenFiles()) {
+    for (const path of paths) {
       const file = this.app.vault.getAbstractFileByPath(path);
-      if (!isListed(file) || seen.has(file.path)) continue;
+      if (!isListed(file) || seen.has(file.path) || this.isExcluded(file)) continue;
       seen.add(file.path);
       out.push(file);
-      if (out.length >= this.plugin.settings.recentLimit) break;
+      if (out.length >= limit) break;
     }
     return out;
+  }
+
+  // Historial propio del plugin, del más reciente al más antiguo; si no da ningún archivo,
+  // la lista corta de Obsidian (getLastOpenFiles).
+  getRecentFiles() {
+    const limit = this.plugin.settings.recentLimit;
+    const history = this.plugin.openHistory || {};
+    const byRecency = Object.keys(history).sort((a, b) => history[b] - history[a]);
+    const files = this.resolveRecent(byRecency, limit);
+    return files.length ? files : this.resolveRecent(this.app.workspace.getLastOpenFiles(), limit);
   }
 
   renderRecent() {
     if (!this.recentEl) return;
     this.recentEl.empty();
     this.recentTimeEls = [];
+    this.recentItems = [];
+    if (!this.hasQuery) this.selected = -1; // las filas son nuevas: no queda ninguna seleccionada
 
     const files = this.getRecentFiles();
     if (!files.length) {
+      this.syncAria();
       this.recentEl.createDiv({
         cls: 'foyer__empty',
         text: STRINGS[this.plugin.getEffectiveLanguage()].emptyRecent,
@@ -667,6 +690,7 @@ class HomeView extends ItemView {
 
     for (const file of files) {
       const row = this.recentEl.createDiv({ cls: 'foyer__row', attr: { title: file.path } });
+      this.addItem(this.recentItems, row, (mode) => this.openFile(file, mode), file);
       setIcon(row.createSpan('foyer__row-icon'), iconFor(file));
 
       const main = row.createDiv('foyer__row-main');
@@ -677,20 +701,9 @@ class HomeView extends ItemView {
       // Hora real de la última apertura (no la de modificación del archivo).
       const timeEl = row.createSpan({ cls: 'foyer__row-time' });
       this.recentTimeEls.push({ el: timeEl, path: file.path });
-
-      row.addEventListener('click', (e) => this.openFile(file, Keymap.isModEvent(e)));
-      row.addEventListener('auxclick', (e) => { if (e.button === 1) this.openFile(file, 'tab'); });
-      row.addEventListener('mouseover', (e) => {
-        this.app.workspace.trigger('hover-link', {
-          event: e,
-          source: VIEW_TYPE,
-          hoverParent: this,
-          targetEl: row,
-          linktext: file.path,
-        });
-      });
     }
     this.updateRecentTimes();
+    this.syncAria();
   }
 
   updateRecentTimes() {
@@ -740,7 +753,7 @@ class HomeView extends ItemView {
   // «Archivos excluidos» de Obsidian (API no documentada): ante cualquier fallo, el archivo cuenta como no excluido.
   isExcluded(file) {
     const cache = this.app.metadataCache;
-    if (typeof cache.isUserIgnored !== 'function') return false;
+    if (typeof cache?.isUserIgnored !== 'function') return false;
     try {
       return Boolean(cache.isUserIgnored(file.path));
     } catch (error) {
@@ -801,12 +814,15 @@ class HomeView extends ItemView {
   updateResults() {
     this.cancelPendingSearch();
     const query = this.inputEl.value.trim();
+    this.deselect(); // la selección de la lista anterior (resultados o recientes) no debe quedar marcada
     this.resultsEl.empty();
     this.items = [];
     this.selected = -1;
-    this.wrapEl.toggleClass('is-searching', query.length > 0);
+    this.hasQuery = query.length > 0;
+    this.wrapEl.toggleClass('is-searching', this.hasQuery);
     if (!query) {
       this.searchState = null;
+      this.syncAria();
       return;
     }
 
@@ -840,18 +856,18 @@ class HomeView extends ItemView {
         title.setText(m.name);
         renderMatches(body.createSpan('foyer__item-path'), m.file.path, m.match.matches);
       }
-      this.addItem(el, (mode) => this.openFile(m.file, mode));
+      this.addItem(this.items, el, (mode) => this.openFile(m.file, mode), m.file);
     }
 
-    if (matches.length) this.resultsEl.createDiv('foyer__divider');
+    if (matches.length) this.resultsEl.createDiv({ cls: 'foyer__divider', attr: { 'aria-hidden': 'true' } });
 
     const strings = STRINGS[this.plugin.getEffectiveLanguage()];
     const searchEl = this.actionItem('search', strings.searchContent(query), '⇧ ↵');
-    this.addItem(searchEl, () => this.openGlobalSearch(query));
+    this.addItem(this.items, searchEl, () => this.openGlobalSearch(query));
 
     if (!exact) {
       const createEl = this.actionItem('file-plus', strings.createNote(query), '');
-      this.addItem(createEl, (mode) => this.createNote(query, mode));
+      this.addItem(this.items, createEl, (mode) => this.createNote(query, mode));
     }
 
     this.select(0);
@@ -865,23 +881,65 @@ class HomeView extends ItemView {
     return el;
   }
 
-  addItem(el, run) {
-    const index = this.items.length;
-    this.items.push({ el, run });
+  // Registra una fila como opción de `list` (resultados o recientes). Con `file`, al pasar el ratón
+  // se muestra la vista previa de la nota.
+  addItem(list, el, run, file) {
+    const index = list.length;
+    el.setAttribute('role', 'option');
+    el.setAttribute('id', `${this.uid}-${list === this.items ? 'results' : 'recent'}-${index}`);
+    el.setAttribute('aria-selected', 'false');
+    list.push({ el, run });
     el.addEventListener('mousemove', () => { if (this.selected !== index) this.select(index); });
     el.addEventListener('click', (e) => run(Keymap.isModEvent(e)));
     el.addEventListener('auxclick', (e) => { if (e.button === 1) run('tab'); });
+    if (file) {
+      el.addEventListener('mouseover', (e) => {
+        this.app.workspace.trigger('hover-link', {
+          event: e,
+          source: VIEW_TYPE,
+          hoverParent: this,
+          targetEl: el,
+          linktext: file.path,
+        });
+      });
+    }
+  }
+
+  // Lista sobre la que actúan las flechas y Enter: resultados con consulta, recientes sin ella.
+  activeItems() {
+    return this.hasQuery ? this.items : this.recentItems;
+  }
+
+  deselect() {
+    const current = this.activeItems()[this.selected];
+    if (!current) return;
+    current.el.removeClass('is-selected');
+    current.el.setAttribute('aria-selected', 'false');
   }
 
   select(i) {
-    if (!this.items.length) return;
-    const n = this.items.length;
+    const list = this.activeItems();
+    if (!list.length) return;
+    const n = list.length;
     const next = ((i % n) + n) % n;
-    if (this.items[this.selected]) this.items[this.selected].el.removeClass('is-selected');
+    this.deselect();
     this.selected = next;
-    const el = this.items[next].el;
+    const el = list[next].el;
     el.addClass('is-selected');
+    el.setAttribute('aria-selected', 'true');
     el.scrollIntoView({ block: 'nearest' });
+    this.syncAria();
+  }
+
+  // Estado ARIA del combobox: qué lista controla, si hay algo desplegado y qué opción está activa.
+  syncAria() {
+    const list = this.activeItems();
+    const listEl = this.hasQuery ? this.resultsEl : this.recentEl;
+    this.inputEl.setAttribute('aria-controls', listEl.getAttribute('id'));
+    this.inputEl.setAttribute('aria-expanded', list.length ? 'true' : 'false');
+    const active = list[this.selected];
+    if (active) this.inputEl.setAttribute('aria-activedescendant', active.el.getAttribute('id'));
+    else this.inputEl.removeAttribute('aria-activedescendant');
   }
 
   onKeyDown(e) {
@@ -895,12 +953,17 @@ class HomeView extends ItemView {
       case 'ArrowUp':
         e.preventDefault();
         this.flushSearch();
-        this.select(this.selected - 1);
+        this.select(this.selected < 0 ? -1 : this.selected - 1); // sin selección, sube a la última fila
         break;
       case 'Enter': {
         e.preventDefault();
         const query = this.inputEl.value.trim();
-        if (!query) return;
+        if (!query) {
+          // Sin consulta, Enter abre la fila seleccionada de «Recientes» (si hay una).
+          this.flushSearch();
+          if (!this.hasQuery) this.recentItems[this.selected]?.run(Keymap.isModEvent(e));
+          return;
+        }
         if (e.shiftKey) {
           this.openGlobalSearch(query);
           return;
