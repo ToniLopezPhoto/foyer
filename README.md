@@ -35,15 +35,24 @@ It replaces Obsidian's empty new tabs with a welcoming space that feels like a n
 </p>
 <p align="center"><sub>Interface illustration, not an application screenshot. Foyer inherits the colors and typography of your active Obsidian theme.</sub></p>
 
+## What's new in 1.1
+
+- **Settings you can change:** choose whether Foyer opens at startup, whether it replaces empty new tabs, and how many recent notes and search results are shown (3 to 20 each).
+- **Recent notes from your history:** the list follows the notes you opened, and you can move through it with the keyboard when the search box is empty.
+- **Smarter search:** matches frontmatter `aliases`, skips notes hidden by Obsidian's **Excluded files**, prefers recently opened notes when names tie, and stays fast on large vaults.
+- **Create notes in folders:** type `Projects/Ideas/Plan` to create the note in folders that are created as needed.
+- **Accessibility:** the search box and its results follow the combobox and listbox pattern for screen readers, and search results show Obsidian's hover preview.
+- **Fixes:** typing `idea.md` opens or creates `idea.md`, not `idea.md.md`.
+
 ## Features
 
 ### Find a thought, instantly
 
-Search note titles and file paths with fuzzy matching. Use the keyboard to move between matches, open a note, search within content, or create a new note directly from a query.
+Search note titles, file paths, and aliases with fuzzy matching. Notes that Obsidian excludes in **Settings → Files and links → Excluded files** do not appear. Use the keyboard to move between matches, open a note, search within content, or create a new note directly from a query.
 
 ### Continue where you left off
 
-Your recent notes reflect **when you actually opened them**, not when they were last edited. Relative timestamps stay fresh while Foyer is open, and history follows notes when you rename or move them.
+Your recent notes reflect **when you actually opened them**, not when they were last edited. Relative timestamps stay fresh while Foyer is open, and history follows notes when you rename or move them. The history stays on this device and is not synced.
 
 ### Make the space yours
 
@@ -57,12 +66,12 @@ Foyer uses the active theme's colors and typography, works in light and dark mod
 
 | Shortcut | Action |
 | --- | --- |
-| `↑` / `↓` | Move through search results |
+| `↑` / `↓` | Move through search results, or through Recent when the search box is empty |
 | `Enter` | Open the selected note |
 | `Ctrl/Cmd + Enter` | Open in a new tab |
 | `Shift + Enter` | Search note content with Obsidian's core Search plugin |
 
-If your query does not match an existing note, Foyer also offers to create it in your vault's configured default location for new notes.
+If your query does not match an existing note, Foyer also offers to create it in your vault's configured default location for new notes. Add folders with `/`, such as `Projects/Ideas/Plan`: missing folders are created relative to the vault root, and an existing folder is reused even if the casing differs. A trailing `.md` or `/` is ignored, and folder names that start with a dot are dropped so Foyer never creates hidden folders.
 
 ## Installation
 

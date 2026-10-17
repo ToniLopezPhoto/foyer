@@ -494,10 +494,12 @@
   cursor: pointer;
   transition: background-color 0.15s ease;
 }
-.foyer__row:hover {
+.foyer__row:hover,
+.foyer__row.is-selected {
   background: var(--background-modifier-hover);
 }
-.foyer__row:hover .foyer__row-icon {
+.foyer__row:hover .foyer__row-icon,
+.foyer__row.is-selected .foyer__row-icon {
   color: var(--interactive-accent);
 }
 

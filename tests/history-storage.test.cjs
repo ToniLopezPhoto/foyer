@@ -6,7 +6,7 @@ const { loadMain } = require('./support/load-main.cjs');
 
 const KEY = 'foyer-open-history';
 
-// Los objetos creados dentro del contexto vm tienen otros prototipos: se comparan como JSON plano.
+// Objects created inside the vm context have other prototypes: compare them as plain JSON.
 const plain = (value) => JSON.parse(JSON.stringify(value));
 
 function createFixture({ data = null, local, localApi = true, activeFile = null } = {}) {
@@ -121,7 +121,7 @@ test('migration merges data.json history into local storage keeping the max time
   assert.equal(writes[0].value.name, 'Toni');
   assert.equal(writes[0].value.language, 'en');
   assert.equal('openHistory' in writes[0].value, false);
-  // La copia local se guarda antes de quitar el historial de data.json.
+  // The local copy is saved before the history is removed from data.json.
   assert.equal(f.calls[0].type, 'local');
   assert.equal(f.calls[1].type, 'data');
 });
