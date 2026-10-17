@@ -42,9 +42,9 @@ T1 and T2 touch different files and run in parallel; T3 runs after T1.
 - Acceptance: the first line matching `^# ` in `README.md` is `# Foyer`; layout still renders centered banner + tagline.
 
 ### T2 — Release artifact attestations
-- [ ] `.github/workflows/release.yml`: add `id-token: write` and `attestations: write` permissions (keep `contents: write`).
-- [ ] Add an `actions/attest-build-provenance` step (current major version, verified from its docs) for `main.js`, `manifest.json`, `styles.css`, before the draft release is created.
-- [ ] README development/installation notes mention how to verify (`gh attestation verify main.js --repo ToniLopezPhoto/foyer`) — only if T3 has not already covered it; otherwise leave README alone.
+- [x] `.github/workflows/release.yml`: add `id-token: write` and `attestations: write` permissions (keep `contents: write`).
+- [x] Add an `actions/attest-build-provenance` step (current major version, verified from its docs) for `main.js`, `manifest.json`, `styles.css`, before the draft release is created.
+- [ ] README development/installation notes mention how to verify (`gh attestation verify main.js --repo ToniLopezPhoto/foyer`) — only if T3 has not already covered it; otherwise leave README alone. (Deferred to T3.)
 - Acceptance: valid YAML; permissions and step present; existing checks unchanged.
 
 ### T3 — Vault enumeration disclosure
@@ -56,4 +56,5 @@ T1 and T2 touch different files and run in parallel; T3 runs after T1.
 ## Progress
 
 - T1 done: `# Foyer` added after banner `</p>` in `README.md` (line 5). Checks: `grep -n -m1 '^# ' README.md` → `5:# Foyer`; `git diff --check` exit 0; `node --check main.js` exit 0.
-- T2, T3: not started.
+- T2 done (workflow only): `actions/attest-build-provenance@v4` (latest release v4.2.2; v4 is a wrapper over `actions/attest`, which the README recommends for new implementations, but the existing action remains supported; source: https://github.com/actions/attest-build-provenance and its /releases page). Permissions `contents`, `id-token`, `attestations: write`; `create-storage-record` needs `push-to-registry`, so `artifact-metadata` is not required. Checks: PyYAML `safe_load` ok (permissions and step order verified, `subject-path` = main.js, manifest.json, styles.css); `git diff --check` exit 0; `node --check main.js` exit 0; `node --test tests/*.test.cjs` 134 pass, 0 fail. README verify note deferred to T3.
+- T3: not started.
