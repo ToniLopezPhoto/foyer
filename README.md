@@ -43,9 +43,9 @@ The full history is in [CHANGELOG.md](CHANGELOG.md).
 
 ### What's new in 1.2
 
-- **A board of sticky notes for the notes you use every day:** pin a note from the file menu (right-click it) or with the commands **Pin current note to Foyer** and **Unpin current note from Foyer**, or with the pin icon that appears when you point at a note in Recent, and it appears as a square card above Recent. Cards show only the note title and its folder, with the same type as Recent, tilt slightly, lift when you point at them, and can take a border color from your theme's palette. Right-click a card to open it, open it in a new tab, change its color or unpin it. Drag cards to reorder them (on touch, press and hold first), or select one and use `Alt` + arrow keys. Pins, colors and order follow renames and sync across your devices with the rest of the plugin settings.
+- **A board of sticky notes for the notes you use every day:** pin a note from the file menu (right-click it) or with the commands **Pin current note to Foyer** and **Unpin current note from Foyer**, or with the pin icon that appears when you point at a note in Recent, and it appears as a square card above Recent. Cards show only the note title and its folder, with the same type as Recent, tilt slightly, straighten when you point at them (no shadow, no lift), and can take a border color from your theme's palette. Right-click a card to open it, open it in a new tab, change its color or unpin it. Drag cards to reorder them (on touch, press and hold first), or select one and use `Alt` + arrow keys. Pins, colors and order follow renames and sync across your devices with the rest of the plugin settings.
 - **Tidy your Recent list:** hover a row and press **✕**, or press `Delete` on the selected row, to remove it from Recent. This only removes the history entry; your note is never deleted. **Clear Recent history** (command palette or settings) empties the list on this device.
-- **New commands:** **Focus Foyer search** puts the cursor in the search box, opening Foyer first if needed, and **Open Foyer in a new tab** opens another Foyer next to the one you have.
+- **New commands:** **Focus Foyer search** puts the cursor in the search box, opening Foyer first if needed (if you hid the search box in the settings it shows a notice instead), and **Open Foyer in a new tab** opens another Foyer next to the one you have.
 - Pinned notes are not repeated in Recent, and the Recent limit still applies to Recent.
 
 ### What's new in 1.1.2
@@ -81,7 +81,7 @@ Your recent notes reflect **when you actually opened them**, not when they were 
 
 ### Keep a few notes at hand
 
-Pin the notes you open all the time and they wait for you as a board of square sticky notes above Recent. Pin a note with the pin icon that shows when you point at it in Recent, from the file menu, or with a command. Each card shows the note's title and folder in the same type as Recent (Foyer never reads the contents of your notes to draw it), leans a little to one side, and straightens and lifts when you point at it. Give a card a border color from your theme's palette (yellow, orange, red, purple, blue, cyan, green or pink) from its right-click menu, or leave it neutral. The board is a responsive grid, about five cards per row on a wide pane and two on a phone. Drag a card to put it where you want it: with a mouse just drag, on touch press and hold for a moment first. With the keyboard, select a card and press `Alt` + an arrow key; a screen reader announces its new position. Only the order is stored, so your board looks right on every screen, and it is saved with the plugin settings so it follows you across devices. If you prefer less motion, Foyer respects your system's reduced-motion setting.
+Pin the notes you open all the time and they wait for you as a board of square sticky notes above Recent. Pin a note with the pin icon that shows when you point at it in Recent, from the file menu, or with a command. Each card shows the note's title and folder in the same type as Recent (Foyer never reads the contents of your notes to draw it), leans a little to one side, and straightens when you point at it. A card is just an outline: no background fill, no shadow. Give a card a border color from your theme's palette (yellow, orange, red, purple, blue, cyan, green or pink) from its right-click menu, or leave it neutral. The board is a responsive grid, about five cards per row on a wide pane and two on a phone. Drag a card to put it where you want it: with a mouse just drag, on touch press and hold for a moment first. With the keyboard, select a card and press `Alt` + an arrow key; a screen reader announces its new position. Only the order is stored, so your board looks right on every screen, and it is saved with the plugin settings so it follows you across devices. If you prefer less motion, Foyer respects your system's reduced-motion setting.
 
 ### Make the space yours
 
@@ -100,6 +100,7 @@ Foyer uses the active theme's colors and typography, works in light and dark mod
 | `Enter` | Open the selected note |
 | `Ctrl/Cmd + Enter` | Open in a new tab |
 | `Shift + Enter` | Search note content with Obsidian's core Search plugin |
+| `Alt` + `P` | Pin the selected note in Recent (search box empty); a plain `P` would be typed into the search box |
 | `Delete` | Remove the selected note from Recent (search box empty; pinned notes are unpinned from the file menu or command instead) |
 | `Escape` | Clear the search box |
 
@@ -111,7 +112,7 @@ Foyer adds these to the command palette, so you can bind your own hotkeys in **S
 | --- | --- |
 | Open home | Opens Foyer, reusing the one you already have |
 | Open Foyer in a new tab | Opens another Foyer in a new tab |
-| Focus Foyer search | Puts the cursor in the search box, opening Foyer first if it is not the active view |
+| Focus Foyer search | Puts the cursor in the search box, opening Foyer first if it is not the active view. If the search box is hidden in the settings, it shows a notice and does nothing else |
 | Pin current note to Foyer | Pins the active note as a card (shown only when the note is not pinned yet) |
 | Unpin current note from Foyer | Removes the active note from Pinned (shown only when it is pinned) |
 | Clear Recent history | Empties Recent on this device and shows a confirmation notice |
@@ -161,9 +162,9 @@ Open **Settings → Community plugins → Foyer** to adjust:
 | Recent notes | How many notes appear under Recent, from 3 to 20 (default 8) |
 | Search results | How many results appear while searching, from 3 to 20 (default 7) |
 | Show greeting | Shows or hides the date, the greeting and the hero image (on by default) |
-| Show search box | Shows or hides the search box (on by default). Without it there is no search and no keyboard navigation, but notes can still be clicked |
+| Show search box | Shows or hides the search box (on by default). Without it there is no search, but the list takes the focus: `↑` / `↓`, `Enter`, `Delete`, `Alt` + arrows and `Alt` + `P` keep working on the first card or row |
 | Show pinned notes | Shows or hides the board of pinned notes (on by default). Nothing is lost: while hidden, pinned notes appear in Recent again |
-| Show recent notes | Shows or hides the Recent list (on by default) |
+| Show recent notes | Shows or hides the Recent list (on by default). If you hide every section, Foyer shows a hint to turn one back on |
 | Pinned and Recent layout | One below the other (default), or two columns with pinned notes on the left and Recent on the right. Narrow panes and phones always use one column |
 | Clear Recent history | Button that empties the Recent list on this device (pinned notes and files are not touched) |
 | Hero image | Selects an existing vault image or imports one into your attachments folder |
