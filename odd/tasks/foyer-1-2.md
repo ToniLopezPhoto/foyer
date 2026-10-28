@@ -131,6 +131,26 @@ Interpretation and decisions made here (flag to the user in the report):
 | T7.3 | Visibility settings and two-column layout |
 | T7.4 | README, CHANGELOG 1.2.0, evidence |
 
+### T8 — Board polish and a configurable home, round two (answers the question left open after T7)
+
+Source: the user's request (quoted by the session that started this work) and the settled reading of it. T7 already delivered part of it (no hover shadow change, transparent card, Recent pin icon, no visible Pinned heading, section toggles, two-column layout); T8 finishes the rest and tightens the details.
+
+Remaining differences, and decisions made here:
+1. **Cards.** No lift on hover or selection (the straighten stays, it involves no shadow), no resting shadow either (the resting card is a subtle `--background-modifier-border` outline; a soft shadow remains only while a card is being dragged, as feedback). The folded corner is drawn as a line, without a fill. The title and folder size come from two shared custom properties used by both the Recent rows and the cards (no duplicated values); weight is inherited by both.
+2. **Color.** The pin color tints the border and the fold line through one custom property (`--foyer-card-line`); "none" keeps the default theme border.
+3. **Pin from the keyboard.** `Alt+P` on the selected Recent row pins it (plain `P` would be typed into the search box). The shortcut uses `event.code` (`KeyP`) because `Alt+P` produces another character on macOS.
+4. **Search hidden.** The listbox itself becomes focusable (`tabindex="0"`, `aria-activedescendant`) and a keydown listener on the page handles ↑/↓/Enter/Delete/`Alt` shortcuts when the search box is hidden. Focus goes to the list and the first card or row is selected. Typed text is cleared when the search box is hidden.
+5. **Everything hidden.** A small hint says to turn a section back on in the settings.
+6. **Focus Foyer search** with the search box hidden shows a `Notice` ("The search box is hidden. Turn it on in Foyer's settings.") and does nothing else; it does not override the setting.
+7. The PR #14 description text is kept up to date in this document only (section "PR #14 description"); nothing is pushed or edited on GitHub.
+
+| Unit | Content |
+|---|---|
+| T8.1 | Card look: no lift, no resting shadow, border-only, fold as a line, shared typography properties |
+| T8.2 | `Alt+P` pins the selected Recent row |
+| T8.3 | Hidden sections: list focus and keyboard, all-hidden hint, Focus command notice |
+| T8.4 | README, CHANGELOG, PR description text in this document |
+
 ## Progress
 
 - Plan written before any code. Branch starts from `af603dc`.
@@ -160,3 +180,4 @@ Interpretation and decisions made here (flag to the user in the report):
 - T7.3 done (visible sections and two columns). RED: new `tests/home-sections.test.cjs` (16 tests: defaults and normalization, both languages, settings tab rows, live hide/show of each part, focus without search box, pins hidden shows them in Recent again, recents hidden, both hidden, keyboard navigation, `is-columns` class, CSS rules) plus the fake dropdown now records its options and the view fixture accepts `settings`: 281 pass / 15 fail of 296. GREEN: 296 pass / 0 fail; `node --check main.js` ok; `git diff --check` clean (two test regexes had broken escapes after a `sed`, fixed with Edit). New settings `showGreeting`, `showSearch`, `showPinned`, `showRecent` (all true) and `layout` (`stacked` or `columns`), five controls in the settings tab applied live. Two columns: pins left, Recent right, wrap widened to 880px while hero and search stay 600px, collapses to one column through a container query (pane width ≤ 720px) and on mobile. Not verified visually.
 - T7.4 done (docs). README (What's new, features, settings table, Spanish paragraph) and CHANGELOG [1.2.0] describe the calmer cards, the pin icon in Recent, the visible-sections settings and the two-column layout. No RED applicable (docs). Final checks on HEAD: `node --check main.js` ok; `node --test tests/*.test.cjs` 296 pass / 0 fail (267 before T7); `git diff --check` clean; manifest 1.2.0 and `versions.json` `"1.2.0": "1.8.7"` unchanged.
 - T7 commits: plan `f3f3ac2`; T7.1 `e450922`; T7.2 `6cbd9c1`; T7.3 `7e20730`; T7.4 (the commit that adds this line). Decisions to confirm with the user: (1) the pin color is kept but shown as the card border (no fill); (2) the resting soft shadow of the cards and the shadow while dragging were kept, only the hover/selected shadow change was removed; (3) "show greeting" hides the date, greeting and hero image together; (4) hiding pins makes pinned notes reappear in Recent; (5) without the search box there is no keyboard navigation. Not verified in a real Obsidian: the two-column layout and its container-query breakpoint (720px), how the transparent cards look in real themes.
+- T8 planned (this section), before any T8 code. Per the instruction, nothing is pushed, tagged or released from T8; PR #14 already exists from the previous round and is only updated in this document.
