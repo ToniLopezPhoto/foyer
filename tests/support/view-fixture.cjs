@@ -16,6 +16,7 @@ async function createViewFixture({
   ignored = [],
   extra = {},
   recentLimit = 8,
+  settings = {},
   language = 'en',
   main = loadMain({ animationFrames: true }),
 } = {}) {
@@ -35,6 +36,7 @@ async function createViewFixture({
       resultLimit: 7,
       recentLimit,
       pinned: pinned.map((entry) => (typeof entry === 'string' ? { path: entry, color: '' } : entry)),
+      ...settings,
     },
     openHistory: history,
     dismissedRecent: new Set(),

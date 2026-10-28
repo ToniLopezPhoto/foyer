@@ -15,6 +15,7 @@
 
 /* ── Lienzo ── */
 .foyer.view-content {
+  container: foyer / inline-size; /* para colapsar las dos columnas según el ancho del panel */
   display: flex;
   justify-content: center;
   padding: 0 1.5rem;
@@ -32,6 +33,13 @@
   display: flex;
   flex-direction: column;
   animation: foyer-in 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+/* Partes del inicio que se ocultan desde los ajustes (display:flex las haría ignorar el atributo hidden) */
+.foyer__hero[hidden],
+.foyer__search[hidden],
+.foyer__recent[hidden] {
+  display: none;
 }
 
 /* ── Saludo ── */
@@ -474,6 +482,37 @@
 .foyer__board + .foyer__recent-group {
   margin-top: 2.4em;
 }
+
+/* Dos columnas: fijadas a la izquierda y recientes a la derecha (una sola columna en paneles estrechos y en móvil) */
+.foyer__wrap.is-columns {
+  max-width: 880px;
+}
+.foyer__wrap.is-columns > .foyer__hero,
+.foyer__wrap.is-columns > .foyer__search {
+  width: 100%;
+  max-width: 600px;
+  align-self: center;
+}
+.is-columns .foyer__list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 2.4em;
+  align-items: start;
+}
+.is-columns .foyer__list > :only-child {
+  grid-column: 1 / -1;
+}
+.is-columns .foyer__board + .foyer__recent-group {
+  margin-top: 0;
+}
+@container foyer (max-width: 720px) {
+  .is-columns .foyer__list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .is-columns .foyer__board + .foyer__recent-group {
+    margin-top: 2.4em;
+  }
+}
 .foyer__label {
   font-family: var(--font-interface);
   font-size: 0.6em;
@@ -749,6 +788,12 @@
 }
 .is-mobile .foyer__board {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.is-mobile .is-columns .foyer__list {
+  grid-template-columns: minmax(0, 1fr);
+}
+.is-mobile .is-columns .foyer__board + .foyer__recent-group {
+  margin-top: 2.4em;
 }
 .is-mobile .foyer__row-path,
 .is-mobile .foyer__help {

@@ -102,7 +102,7 @@ function createSettingComponent(type) {
     onChange(handler) { component.changeHandler = handler; return component; },
     setLimits(min, max, step) { component.limits = [min, max, step]; return component; },
     setDynamicTooltip() { component.dynamicTooltip = true; return component; },
-    addOption() { return component; },
+    addOption(value, label) { (component.options ||= []).push([value, label]); return component; },
     setButtonText() { return component; },
     setCta() { return component; },
     onClick(handler) { component.clickHandler = handler; return component; },

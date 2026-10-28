@@ -18,7 +18,12 @@ const DEFAULT_SETTINGS = Object.freeze({
   replaceNewTab: true,   // las pestañas nuevas vacías muestran el inicio
   recentLimit: 8,        // notas en «Recientes»
   resultLimit: 7,        // resultados de búsqueda visibles
-  pinned: Object.freeze([]), // rutas de las notas fijadas; viven en data.json y se sincronizan
+  pinned: Object.freeze([]), // notas fijadas [{ path, color }]; viven en data.json y se sincronizan
+  showGreeting: true,    // fecha, saludo e imagen de cabecera
+  showSearch: true,      // buscador
+  showPinned: true,      // tablero de notas fijadas
+  showRecent: true,      // lista de «Recientes»
+  layout: 'stacked',     // fijadas y recientes: 'stacked' (una debajo de otra) o 'columns' (dos columnas)
 });
 
 const LIMIT_MIN = 3;
@@ -76,6 +81,18 @@ const STRINGS = {
     settingsOpenOnStartupDescription: 'Muestra el inicio al arrancar Obsidian. El cambio se aplica la próxima vez que abras Obsidian.',
     settingsReplaceNewTab: 'Reemplazar pestañas nuevas',
     settingsReplaceNewTabDescription: 'Las pestañas nuevas vacías muestran el inicio. Desactívalo si usas otro plugin de página de inicio.',
+    settingsShowGreeting: 'Mostrar el saludo',
+    settingsShowGreetingDescription: 'La fecha, el saludo y la imagen de cabecera.',
+    settingsShowSearch: 'Mostrar el buscador',
+    settingsShowSearchDescription: 'Sin buscador las notas se siguen pudiendo abrir con el ratón o el dedo, pero no hay búsqueda ni navegación con el teclado.',
+    settingsShowPinned: 'Mostrar las notas fijadas',
+    settingsShowPinnedDescription: 'El tablero de notas fijadas. Si lo ocultas no se pierde nada: las notas fijadas vuelven a salir en «Recientes».',
+    settingsShowRecent: 'Mostrar las notas recientes',
+    settingsShowRecentDescription: 'La lista de notas abiertas recientemente.',
+    settingsLayout: 'Distribución de fijadas y recientes',
+    settingsLayoutDescription: 'Una debajo de otra, o en dos columnas (fijadas a la izquierda y recientes a la derecha). En paneles estrechos siempre se usa una sola columna.',
+    layoutStacked: 'Una debajo de otra',
+    layoutColumns: 'Dos columnas',
     settingsRecentLimit: 'Notas recientes',
     settingsRecentLimitDescription: 'Cuántas notas se muestran en «Recientes» (de 3 a 20).',
     settingsResultLimit: 'Resultados de búsqueda',
@@ -145,6 +162,18 @@ const STRINGS = {
     settingsOpenOnStartupDescription: 'Show the home page when Obsidian starts. Takes effect the next time you start Obsidian.',
     settingsReplaceNewTab: 'Replace new tabs',
     settingsReplaceNewTabDescription: 'Empty new tabs show the home page. Turn this off if you use another home-page plugin.',
+    settingsShowGreeting: 'Show greeting',
+    settingsShowGreetingDescription: 'The date, the greeting and the hero image.',
+    settingsShowSearch: 'Show search box',
+    settingsShowSearchDescription: 'Without it you can still open notes with the mouse or your finger, but there is no search and no keyboard navigation.',
+    settingsShowPinned: 'Show pinned notes',
+    settingsShowPinnedDescription: 'The board of pinned notes. Hiding it loses nothing: pinned notes show up in Recent again.',
+    settingsShowRecent: 'Show recent notes',
+    settingsShowRecentDescription: 'The list of recently opened notes.',
+    settingsLayout: 'Pinned and Recent layout',
+    settingsLayoutDescription: 'One below the other, or in two columns (pinned on the left, recent on the right). Narrow panes always use one column.',
+    layoutStacked: 'One below the other',
+    layoutColumns: 'Two columns',
     settingsRecentLimit: 'Recent notes',
     settingsRecentLimitDescription: 'How many notes appear under Recent (3 to 20).',
     settingsResultLimit: 'Search results',
@@ -219,6 +248,11 @@ function normalizeSettings(data) {
     recentLimit: normalizeLimit(source.recentLimit, DEFAULT_SETTINGS.recentLimit),
     resultLimit: normalizeLimit(source.resultLimit, DEFAULT_SETTINGS.resultLimit),
     pinned: normalizePinned(source.pinned),
+    showGreeting: normalizeToggle(source.showGreeting, DEFAULT_SETTINGS.showGreeting),
+    showSearch: normalizeToggle(source.showSearch, DEFAULT_SETTINGS.showSearch),
+    showPinned: normalizeToggle(source.showPinned, DEFAULT_SETTINGS.showPinned),
+    showRecent: normalizeToggle(source.showRecent, DEFAULT_SETTINGS.showRecent),
+    layout: ['stacked', 'columns'].includes(source.layout) ? source.layout : DEFAULT_SETTINGS.layout,
   };
 }
 
@@ -666,6 +700,7 @@ class HomeView extends ItemView {
 
     // Cabecera
     const hero = this.wrapEl.createDiv('foyer__hero');
+    this.heroEl = hero;
     this.sparkEl = hero.createDiv('foyer__spark');
     this.sparkEl.appendChild(buildSpark());
     this.heroImageEl = hero.createEl('img', { cls: 'foyer__image', attr: { alt: '' } });
@@ -676,6 +711,7 @@ class HomeView extends ItemView {
 
     // Búsqueda
     const search = this.wrapEl.createDiv('foyer__search');
+    this.searchEl = search;
     const box = search.createDiv('foyer__box');
     setIcon(box.createSpan('foyer__search-icon'), 'search');
     this.inputEl = box.createEl('input', {
@@ -700,6 +736,7 @@ class HomeView extends ItemView {
 
     // Fijadas y recientes: un único listbox; los encabezados de sección van dentro (renderRecent)
     const recent = this.wrapEl.createDiv('foyer__recent');
+    this.recentWrapEl = recent;
     this.recentEl = recent.createDiv({ cls: 'foyer__list', attr: { role: 'listbox', id: `${this.uid}-recent` } });
 
     // Eventos
@@ -746,6 +783,12 @@ class HomeView extends ItemView {
   refresh() {
     const language = this.plugin.getEffectiveLanguage();
     const strings = STRINGS[language];
+    // Qué partes del inicio se ven (todas por defecto) y cómo se distribuyen las fijadas y las recientes
+    const { settings } = this.plugin;
+    this.heroEl.hidden = settings.showGreeting === false;
+    this.searchEl.hidden = settings.showSearch === false;
+    this.recentWrapEl.hidden = settings.showPinned === false && settings.showRecent === false;
+    this.wrapEl.toggleClass('is-columns', settings.layout === 'columns');
     this.refreshHeader();
     this.inputEl.placeholder = strings.searchPlaceholder;
     this.inputEl.setAttribute('aria-label', strings.searchLabel);
@@ -787,6 +830,7 @@ class HomeView extends ItemView {
     window.setTimeout(() => {
       if (!this.inputEl) return;
       if (this.app.workspace.getActiveViewOfType(HomeView) !== this) return;
+      if (this.plugin.settings.showSearch === false) return; // sin buscador no hay dónde poner el cursor
       if (document.activeElement !== this.inputEl) this.inputEl.focus();
     }, 40);
   }
@@ -815,9 +859,9 @@ class HomeView extends ItemView {
 
   // Historial propio del plugin, del más reciente al más antiguo, sin las notas fijadas (el límite se
   // aplica a lo que queda); si el historial no da ningún archivo, la lista corta de Obsidian (getLastOpenFiles).
-  getRecentFiles() {
+  getRecentFiles(excludePinned = true) {
     const limit = this.plugin.settings.recentLimit;
-    const pinned = new Set((this.plugin.settings.pinned ?? []).map((entry) => entry.path));
+    const pinned = new Set(excludePinned ? (this.plugin.settings.pinned ?? []).map((entry) => entry.path) : []);
     const history = this.plugin.openHistory || {};
     const byRecency = Object.keys(history).sort((a, b) => history[b] - history[a]);
     // El respaldo de Obsidian solo entra si el historial no tiene ningún archivo, aunque estén todos fijados;
@@ -840,13 +884,17 @@ class HomeView extends ItemView {
     if (!this.hasQuery) this.selected = -1; // las filas son nuevas: no queda ninguna seleccionada
 
     const strings = STRINGS[this.plugin.getEffectiveLanguage()];
-    const pinned = this.getPinnedFiles();
-    const recent = this.getRecentFiles();
-    this.recentEl.setAttribute('aria-label', pinned.length ? `${strings.pinned}, ${strings.recent}` : strings.recent);
+    // Cada parte se puede ocultar; con las fijadas ocultas, sus notas vuelven a salir en «Recientes».
+    const { showPinned, showRecent } = this.plugin.settings;
+    this.pinsShown = showPinned !== false;
+    const pinned = this.pinsShown ? this.getPinnedFiles() : [];
+    const recent = showRecent === false ? [] : this.getRecentFiles(this.pinsShown);
+    const label = showRecent === false ? strings.pinned : pinned.length ? `${strings.pinned}, ${strings.recent}` : strings.recent;
+    this.recentEl.setAttribute('aria-label', label);
 
     if (pinned.length) this.renderBoard(strings.pinned, pinned);
     // Con notas fijadas y nada más en el historial, «Recientes» no se muestra (ni dice que no hay nada).
-    if (recent.length || !pinned.length) {
+    if (showRecent !== false && (recent.length || !pinned.length)) {
       const group = this.renderSection(strings.recent, recent, true);
       if (!pinned.length && !recent.length) group.createDiv({ cls: 'foyer__empty', text: strings.emptyRecent });
     }
@@ -930,8 +978,8 @@ class HomeView extends ItemView {
 
     if (!removable) return;
     const strings = STRINGS[this.plugin.getEffectiveLanguage()];
-    // Fijar la nota: pasa al tablero de fijadas y deja de salir en Recientes.
-    this.addRowButton(row, 'foyer__row-pin', 'pin', strings.pinToFoyer, () => this.plugin.pinFile(file.path));
+    // Fijar la nota: pasa al tablero de fijadas y deja de salir en Recientes (solo si las fijadas se ven).
+    if (this.pinsShown) this.addRowButton(row, 'foyer__row-pin', 'pin', strings.pinToFoyer, () => this.plugin.pinFile(file.path));
     // Quitar solo borra la entrada del historial; el archivo no se toca.
     item.removePath = file.path;
     this.addRowButton(row, 'foyer__row-remove', 'x', strings.removeFromRecent, () => this.removeRecentAt(this.recentItems.indexOf(item)));
@@ -1622,6 +1670,43 @@ class HomeSettingTab extends PluginSettingTab {
         .setValue(this.plugin.settings.resultLimit)
         .setDynamicTooltip()
         .onChange((value) => saveResultLimit(value)));
+
+    new Setting(containerEl)
+      .setName(strings.settingsShowGreeting)
+      .setDesc(strings.settingsShowGreetingDescription)
+      .addToggle((toggle) => toggle
+        .setValue(this.plugin.settings.showGreeting)
+        .onChange((value) => this.plugin.updateSetting('showGreeting', value)));
+
+    new Setting(containerEl)
+      .setName(strings.settingsShowSearch)
+      .setDesc(strings.settingsShowSearchDescription)
+      .addToggle((toggle) => toggle
+        .setValue(this.plugin.settings.showSearch)
+        .onChange((value) => this.plugin.updateSetting('showSearch', value)));
+
+    new Setting(containerEl)
+      .setName(strings.settingsShowPinned)
+      .setDesc(strings.settingsShowPinnedDescription)
+      .addToggle((toggle) => toggle
+        .setValue(this.plugin.settings.showPinned)
+        .onChange((value) => this.plugin.updateSetting('showPinned', value)));
+
+    new Setting(containerEl)
+      .setName(strings.settingsShowRecent)
+      .setDesc(strings.settingsShowRecentDescription)
+      .addToggle((toggle) => toggle
+        .setValue(this.plugin.settings.showRecent)
+        .onChange((value) => this.plugin.updateSetting('showRecent', value)));
+
+    new Setting(containerEl)
+      .setName(strings.settingsLayout)
+      .setDesc(strings.settingsLayoutDescription)
+      .addDropdown((dropdown) => dropdown
+        .addOption('stacked', strings.layoutStacked)
+        .addOption('columns', strings.layoutColumns)
+        .setValue(this.plugin.settings.layout)
+        .onChange((value) => this.plugin.updateSetting('layout', value)));
 
     new Setting(containerEl)
       .setName(strings.settingsClearHistory)
