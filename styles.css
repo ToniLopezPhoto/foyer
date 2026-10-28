@@ -463,7 +463,7 @@
 
 /* ── Recientes ── */
 .foyer__recent {
-  margin-top: 3.4em;
+  margin-top: 2em;
 }
 .is-searching .foyer__recent {
   display: none;
@@ -483,7 +483,7 @@
 }
 /* Recientes bajo el tablero de fijadas */
 .foyer__board + .foyer__recent-group {
-  margin-top: 2.4em;
+  margin-top: 1.6em;
 }
 
 /* Dos columnas: fijadas a la izquierda y recientes a la derecha (una sola columna en paneles estrechos y en móvil) */
@@ -513,7 +513,7 @@
     grid-template-columns: minmax(0, 1fr);
   }
   .is-columns .foyer__board + .foyer__recent-group {
-    margin-top: 2.4em;
+    margin-top: 1.6em;
   }
 }
 .foyer__label {
@@ -815,7 +815,7 @@
   grid-template-columns: minmax(0, 1fr);
 }
 .is-mobile .is-columns .foyer__board + .foyer__recent-group {
-  margin-top: 2.4em;
+  margin-top: 1.6em;
 }
 .is-mobile .foyer__row-path,
 .is-mobile .foyer__help {
