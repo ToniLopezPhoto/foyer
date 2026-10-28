@@ -1,0 +1,33 @@
+name: Feature request
+description: Suggest an idea for Foyer.
+title: "[Idea]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Foyer is intentionally minimal: a place to begin, not a dashboard. It is private and offline, and it does not send data anywhere. Ideas that fit that shape are the easiest to say yes to. Ideas that add accounts, network calls, or a crowded home screen may not fit, but please still share the problem you are trying to solve.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe the situation or friction you run into today.
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: Proposed idea
+      description: What would you like Foyer to do?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you have considered
+      description: Other ways to solve this, including workarounds in Obsidian or other plugins.
+    validations:
+      required: false
