@@ -52,13 +52,13 @@ Design context: Figma file https://www.figma.com/design/7uPpQphbQxiWKJt8Q6z8bm (
 - Acceptance: valid JSON, under 250 characters, starts with a verb, ends with a period, no "Obsidian".
 
 ### T3 — Docs
-- [ ] README: remove the pending-review notice; native install first with an `obsidian://show-plugin?id=foyer` link; BRAT and manual install as alternatives; "What's new in 1.1.2" (and 1.1.1) at the top, pointing to CHANGELOG; Spanish section updated the same way.
-- [ ] `CHANGELOG.md`: Keep a Changelog format, entries 1.0.0 → 1.1.2 written for users.
-- [ ] `CONTRIBUTING.md`: setup, checks, conventions (dependency-free, theme variables, bilingual strings, tests, Conventional Commits).
+- [x] README: remove the pending-review notice; native install first with an `obsidian://show-plugin?id=foyer` link; BRAT and manual install as alternatives; "What's new in 1.1.2" (and 1.1.1) at the top, pointing to CHANGELOG; Spanish section updated the same way.
+- [x] `CHANGELOG.md`: Keep a Changelog format, entries 1.0.0 → 1.1.2 written for users.
+- [x] `CONTRIBUTING.md`: setup, checks, conventions (dependency-free, theme variables, bilingual strings, tests, Conventional Commits).
 - Acceptance: claims match code and git history; links valid; `git diff --check` clean.
 
 ### T4 — Version 1.1.2
-- [ ] `manifest.json` version `1.1.2`; `versions.json` adds `"1.1.2": "1.8.7"`; CHANGELOG 1.1.2 dated.
+- [x] `manifest.json` version `1.1.2`; `versions.json` adds `"1.1.2": "1.8.7"`; CHANGELOG 1.1.2 dated.
 - Acceptance: release workflow tag check would pass for tag `1.1.2`.
 
 ## Progress
@@ -66,4 +66,7 @@ Design context: Figma file https://www.figma.com/design/7uPpQphbQxiWKJt8Q6z8bm (
 - Branch created from `main` (`33f4419`).
 - T1 done (`b90f731`): RED observed on old main.js (settings suite 20 pass / 1 fail); GREEN full suite 135 pass / 0 fail; `node --check main.js` ok.
 - T2 done (`d447f73`): description 132 chars, valid JSON.
-- Paused (usage limit): T3 docs and T4 bump pending. RDD assessment not run yet.
+- T3 done (`05e2231`): README (native install first, `obsidian://show-plugin?id=foyer`, pending-review notice removed, 1.1.2/1.1.1 news, Spanish section updated), new CHANGELOG.md (1.0.0 to 1.1.2, derived from `git log` and tags), new CONTRIBUTING.md. Route: delegated writer trigger not used; done inline in a single pass by the finishing session.
+- T4 done (`cf39070`): `manifest.json` 1.1.2, `versions.json` `"1.1.2": "1.8.7"`, CHANGELOG 1.1.2 dated 2026-10-28. Simulated the release.yml check for tag `1.1.2`: tag equals manifest version, `versions.json` has the key, value equals `minAppVersion` (also the CI check).
+- Checks observed after T4: `node --check main.js` ok; `node --test tests/*.test.cjs` 135 pass / 0 fail; `git diff --check` clean; `manifest.json` and `versions.json` parse as JSON.
+- Not done (user decision): push, PR, tag `1.1.2`, release. RDD assessment not run (docs/metadata only).
