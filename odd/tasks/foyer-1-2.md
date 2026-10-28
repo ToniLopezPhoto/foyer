@@ -55,12 +55,12 @@ Roadmap context: 1.2 (this), 1.3 (greeting options, Recents grouped by date, ran
 Route note: the writer trigger (2+ non-trivial files) would fire for T3; I kept every task inline because the tasks are sequential edits to the same two files (`main.js`, tests) and a second writer would only add handoff cost. Recorded so the skip is visible.
 
 ### T1 — Pinned notes: model and commands
-- [ ] RED: `normalizeSettings` returns `pinned` as a clean list (invalid values give `[]`, duplicates and non-strings dropped); `DEFAULT_SETTINGS.pinned` is `[]`.
-- [ ] RED: plugin `pinFile` / `unpinFile` / `isPinned` persist through `saveData` and never touch the open history.
-- [ ] RED: vault `rename` moves pinned paths (file and folder prefix); `delete` drops them; both save once.
-- [ ] RED: commands "Pin current note to Foyer" / "Unpin current note from Foyer" use `checkCallback` (shown only when they apply, act only when not checking).
-- [ ] RED: `file-menu` adds a single pin or unpin item for listed files only.
-- [ ] GREEN: `pinned` in `DEFAULT_SETTINGS` / `normalizeSettings`; helpers `renameInPinned`, `deleteFromPinned`; plugin methods; commands; `file-menu` handler; strings `en` + `es`.
+- [x] RED: `normalizeSettings` returns `pinned` as a clean list (invalid values give `[]`, duplicates and non-strings dropped); `DEFAULT_SETTINGS.pinned` is `[]`.
+- [x] RED: plugin `pinFile` / `unpinFile` / `isPinned` persist through `saveData` and never touch the open history.
+- [x] RED: vault `rename` moves pinned paths (file and folder prefix); `delete` drops them; both save once.
+- [x] RED: commands "Pin current note to Foyer" / "Unpin current note from Foyer" use `checkCallback` (shown only when they apply, act only when not checking).
+- [x] RED: `file-menu` adds a single pin or unpin item for listed files only.
+- [x] GREEN: `pinned` in `DEFAULT_SETTINGS` / `normalizeSettings`; helpers `renameInPinned`, `deleteFromPinned`; plugin methods; commands; `file-menu` handler; strings `en` + `es`.
 - Acceptance: pinned notes sync through `data.json`, history untouched, strings in both languages.
 
 ### T2 — Pinned section in the view
@@ -92,3 +92,4 @@ Route note: the writer trigger (2+ non-trivial files) would fire for T3; I kept 
 ## Progress
 
 - Plan written before any code. Branch starts from `af603dc`.
+- T1 done. RED: new `tests/pinned.test.cjs` (22 tests) against the old `main.js`: 4 pass (vacuous) / 18 fail (full suite 139 pass / 18 fail). GREEN: full suite 157 pass / 0 fail; `node --check main.js` ok; `git diff --check` clean. Refactor: `renameInPinned` rewritten as a plain loop. Note: the vault `rename`/`delete` handlers now also persist `pinned` through `updateSetting` (they became async).

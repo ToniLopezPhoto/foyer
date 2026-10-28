@@ -18,6 +18,7 @@ const DEFAULT_SETTINGS = Object.freeze({
   replaceNewTab: true,   // las pestañas nuevas vacías muestran el inicio
   recentLimit: 8,        // notas en «Recientes»
   resultLimit: 7,        // resultados de búsqueda visibles
+  pinned: Object.freeze([]), // rutas de las notas fijadas; viven en data.json y se sincronizan
 });
 
 const LIMIT_MIN = 3;
@@ -35,12 +36,17 @@ const STRINGS = {
     searchLabel: 'Buscar notas',
     keyboardHelp: ['↑↓ moverse', '↵ abrir', (mod) => `${mod} ↵ nueva pestaña`, '⇧ ↵ buscar en contenido'],
     recent: 'Recientes',
+    pinned: 'Fijadas',
     emptyRecent: 'Todavía no has abierto ninguna nota.',
     searchContent: (query) => `Buscar «${query}» en el contenido`,
     createNote: (query) => `Crear nota «${query}»`,
     globalSearchUnavailable: 'La búsqueda global no está disponible.',
     createNoteFailed: 'No se pudo crear la nota.',
     openHome: 'Abrir inicio',
+    commandPinCurrent: 'Fijar nota actual en Foyer',
+    commandUnpinCurrent: 'Quitar nota actual de Foyer',
+    pinToFoyer: 'Fijar en Foyer',
+    unpinFromFoyer: 'Quitar de Foyer',
     settingsName: 'Nombre del saludo',
     settingsNameDescription: 'Deja el campo vacío para mostrar el saludo sin nombre.',
     settingsLanguage: 'Idioma',
@@ -83,12 +89,17 @@ const STRINGS = {
     searchLabel: 'Search notes',
     keyboardHelp: ['↑↓ navigate', '↵ open', (mod) => `${mod} ↵ new tab`, '⇧ ↵ search content'],
     recent: 'Recent',
+    pinned: 'Pinned',
     emptyRecent: 'You have not opened any notes yet.',
     searchContent: (query) => `Search “${query}” in content`,
     createNote: (query) => `Create note “${query}”`,
     globalSearchUnavailable: 'Global search is unavailable.',
     createNoteFailed: 'Could not create the note.',
     openHome: 'Open home',
+    commandPinCurrent: 'Pin current note to Foyer',
+    commandUnpinCurrent: 'Unpin current note from Foyer',
+    pinToFoyer: 'Pin to Foyer',
+    unpinFromFoyer: 'Unpin from Foyer',
     settingsName: 'Greeting name',
     settingsNameDescription: 'Leave this blank to show the greeting without a name.',
     settingsLanguage: 'Language',
@@ -141,6 +152,12 @@ function normalizeLimit(value, fallback) {
   return Math.min(LIMIT_MAX, Math.max(LIMIT_MIN, Math.round(value)));
 }
 
+// Lista de rutas sin repetir: solo cuentan los textos no vacíos; cualquier otro valor da una lista vacía.
+function normalizePinned(value) {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.filter((path) => typeof path === 'string' && path))];
+}
+
 function normalizeToggle(value, fallback) {
   return typeof value === 'boolean' ? value : fallback;
 }
@@ -157,6 +174,7 @@ function normalizeSettings(data) {
     replaceNewTab: normalizeToggle(source.replaceNewTab, DEFAULT_SETTINGS.replaceNewTab),
     recentLimit: normalizeLimit(source.recentLimit, DEFAULT_SETTINGS.recentLimit),
     resultLimit: normalizeLimit(source.resultLimit, DEFAULT_SETTINGS.resultLimit),
+    pinned: normalizePinned(source.pinned),
   };
 }
 
@@ -234,6 +252,26 @@ function deleteFromHistory(history, removedPath) {
     }
   }
   return changed;
+}
+
+// Rutas fijadas tras renombrar un archivo o una carpeta; devuelve la lista nueva o null si nada cambia.
+function renameInPinned(pinned, oldPath, newPath) {
+  let changed = false;
+  const next = pinned.map((path) => {
+    let moved = null;
+    if (path === oldPath) moved = newPath;
+    else if (path.startsWith(`${oldPath}/`)) moved = newPath + path.slice(oldPath.length);
+    if (moved === null) return path;
+    changed = true;
+    return moved;
+  });
+  return changed ? normalizePinned(next) : null;
+}
+
+// Rutas fijadas tras borrar un archivo o una carpeta; devuelve la lista nueva o null si nada cambia.
+function deleteFromPinned(pinned, removedPath) {
+  const next = pinned.filter((path) => path !== removedPath && !path.startsWith(`${removedPath}/`));
+  return next.length === pinned.length ? null : next;
 }
 
 function isSafeHeroFileName(name) {
@@ -357,6 +395,8 @@ module.exports = {
   recordOpen,
   renameInHistory,
   deleteFromHistory,
+  renameInPinned,
+  deleteFromPinned,
   isSafeHeroFileName,
   sanitizeFileName,
 };
@@ -398,6 +438,8 @@ const {
   recordOpen,
   renameInHistory,
   deleteFromHistory,
+  renameInPinned,
+  deleteFromPinned,
   isSafeHeroFileName,
   sanitizeFileName,
 } = homeSettingsModule.exports;
@@ -1269,11 +1311,15 @@ module.exports = class FoyerPlugin extends Plugin {
       recordOpen(this.openHistory, file.path, Date.now());
       this.saveHistorySoon();
     }));
-    this.registerEvent(this.app.vault.on('rename', (file, oldPath) => {
+    this.registerEvent(this.app.vault.on('rename', async (file, oldPath) => {
       if (renameInHistory(this.openHistory, oldPath, file.path)) this.saveHistorySoon();
+      const pinned = renameInPinned(this.settings.pinned, oldPath, file.path);
+      if (pinned) await this.updateSetting('pinned', pinned);
     }));
-    this.registerEvent(this.app.vault.on('delete', (file) => {
+    this.registerEvent(this.app.vault.on('delete', async (file) => {
       if (deleteFromHistory(this.openHistory, file.path)) this.saveHistorySoon();
+      const pinned = deleteFromPinned(this.settings.pinned, file.path);
+      if (pinned) await this.updateSetting('pinned', pinned);
     }));
 
     this.registerView(VIEW_TYPE, (leaf) => new HomeView(leaf, this));
@@ -1283,6 +1329,30 @@ module.exports = class FoyerPlugin extends Plugin {
 
     this.addRibbonIcon('home', STRINGS[this.getEffectiveLanguage()].openHome, () => this.openHome());
     this.addCommand({ id: 'open', name: STRINGS[this.getEffectiveLanguage()].openHome, callback: () => this.openHome() });
+    // Cada comando de fijado solo aparece cuando se puede aplicar a la nota activa.
+    const pinCommand = (id, name, applies, run) => this.addCommand({
+      id,
+      name,
+      checkCallback: (checking) => {
+        const file = this.app.workspace.getActiveFile();
+        if (!isListed(file) || !applies(this.isPinned(file.path))) return false;
+        if (!checking) run(file.path);
+        return true;
+      },
+    });
+    const strings = STRINGS[this.getEffectiveLanguage()];
+    pinCommand('pin-current', strings.commandPinCurrent, (pinned) => !pinned, (path) => this.pinFile(path));
+    pinCommand('unpin-current', strings.commandUnpinCurrent, (pinned) => pinned, (path) => this.unpinFile(path));
+    // Menú contextual de archivos: una sola entrada, para fijar o para quitar.
+    this.registerEvent(ws.on('file-menu', (menu, file) => {
+      if (!isListed(file)) return;
+      const pinned = this.isPinned(file.path);
+      const current = STRINGS[this.getEffectiveLanguage()];
+      menu.addItem((item) => item
+        .setTitle(pinned ? current.unpinFromFoyer : current.pinToFoyer)
+        .setIcon(pinned ? 'pin-off' : 'pin')
+        .onClick(() => (pinned ? this.unpinFile(file.path) : this.pinFile(file.path))));
+    }));
 
     this.app.workspace.onLayoutReady(async () => {
       // El archivo activo restaurado al arrancar cuenta como abierto ahora.
@@ -1305,6 +1375,20 @@ module.exports = class FoyerPlugin extends Plugin {
 
   getEffectiveLanguage() {
     return resolveLanguage(this.settings.language, getLanguage());
+  }
+
+  isPinned(path) {
+    return this.settings.pinned.includes(path);
+  }
+
+  async pinFile(path) {
+    if (this.isPinned(path)) return;
+    await this.updateSetting('pinned', [...this.settings.pinned, path]);
+  }
+
+  async unpinFile(path) {
+    if (!this.isPinned(path)) return;
+    await this.updateSetting('pinned', this.settings.pinned.filter((entry) => entry !== path));
   }
 
   async updateSetting(key, value) {
