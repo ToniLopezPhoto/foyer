@@ -694,6 +694,20 @@
   color: var(--text-normal);
 }
 
+/* Tarjeta que se está arrastrando: se sigue al puntero (transform en línea) y queda por encima */
+.foyer__card.is-dragging {
+  z-index: 5;
+  cursor: grabbing;
+  box-shadow: var(--shadow-l);
+  transition: none;
+}
+.foyer__board.is-reordering .foyer__card {
+  cursor: grabbing;
+}
+.foyer__board.is-reordering .foyer__card:not(.is-dragging) {
+  transition: none;
+}
+
 /* Aviso para lectores de pantalla: presente en el árbol de accesibilidad pero invisible */
 .foyer__live {
   position: absolute;

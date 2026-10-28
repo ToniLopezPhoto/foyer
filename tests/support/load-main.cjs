@@ -50,6 +50,15 @@ function createElement(options = {}) {
     getAttribute(name) { return name in this.attributes ? this.attributes[name] : null; },
     removeAttribute(name) { delete this.attributes[name]; },
     appendChild(child) { this.children.push(child); return child; },
+    insertBefore(child, reference) {
+      const from = this.children.indexOf(child);
+      if (from !== -1) this.children.splice(from, 1);
+      const at = reference ? this.children.indexOf(reference) : this.children.length;
+      this.children.splice(at, 0, child);
+      return child;
+    },
+    setPointerCapture(id) { this.capturedPointer = id; },
+    releasePointerCapture() { this.capturedPointer = null; },
     addEventListener(type, handler) { (this.listeners[type] ||= []).push(handler); },
     dispatch(type, event = {}) { for (const handler of this.listeners[type] || []) handler(event); },
     scrollIntoView() {},
@@ -125,7 +134,8 @@ function subsequenceFuzzy(query) {
 // With animationFrames, window.requestAnimationFrame exists and its callbacks stay in frames.queue
 // until frames.flush() is called.
 // With submenus: false, menu items have no setSubmenu() (older Obsidian). `menus` records every Menu created.
-function loadMain({ deferDebounce = false, fuzzy = null, animationFrames = false, submenus = true } = {}) {
+// With reducedMotion, window.matchMedia('(prefers-reduced-motion: reduce)') matches.
+function loadMain({ deferDebounce = false, fuzzy = null, animationFrames = false, submenus = true, reducedMotion = false } = {}) {
   const notices = [];
   const menus = [];
   const clock = { hour: 9, date: 'lunes, 1 de enero' };
@@ -266,6 +276,7 @@ function loadMain({ deferDebounce = false, fuzzy = null, animationFrames = false
       if (timers.timeouts[id - 1]) timers.timeouts[id - 1].cancelled = true;
     },
   };
+  window.matchMedia = (query) => ({ matches: reducedMotion && query.includes('prefers-reduced-motion') });
   if (animationFrames) {
     window.requestAnimationFrame = (fn) => {
       const id = frames.nextId++;

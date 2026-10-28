@@ -527,6 +527,11 @@ const {
 
 const VIEW_TYPE = 'foyer';
 const ARROW_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']);
+// Arrastre de tarjetas: pulsación larga en táctil, distancia mínima (px) para empezar o para cancelar por desplazamiento
+const LONG_PRESS_MS = 300;
+const MOUSE_DRAG_SLOP = 4;
+const TOUCH_SCROLL_SLOP = 10;
+const FLIP_MS = 180;
 let viewCounter = 0; // para que los ids ARIA de cada vista sean únicos
 
 // Ocultar temporales de Syncthing, dotfiles y .tmp
@@ -637,6 +642,9 @@ class HomeView extends ItemView {
     this.listedEntries = null; // caché de archivos listados: { file, name, aliases }, en el orden de vault.getFiles()
     this.searchState = null; // { query, pool }: candidatos de la última búsqueda para acotar la siguiente
     this.pendingSearch = null; // { cancel }: búsqueda programada para el próximo frame
+    this.drag = null; // arrastre de una tarjeta en curso (ver onCardPointerDown)
+    this.renderPending = false; // se pidió pintar «Recientes» durante un arrastre
+    this.suppressClick = false; // el clic que cierra un arrastre no debe abrir la nota
     this.refreshRecentSoon = debounce(() => this.renderRecent(), 150, true);
   }
 
@@ -697,6 +705,10 @@ class HomeView extends ItemView {
     // Eventos
     this.registerDomEvent(this.inputEl, 'input', () => this.scheduleSearch());
     this.registerDomEvent(this.inputEl, 'keydown', (e) => this.onKeyDown(e));
+    // En táctil, tras la pulsación larga el dedo arrastra la tarjeta: la página no debe desplazarse.
+    this.registerDomEvent(this.recentEl, 'touchmove', (e) => {
+      if (this.drag?.active && e.cancelable) e.preventDefault();
+    }, { passive: false });
 
     const ws = this.app.workspace;
     this.registerEvent(ws.on('file-open', () => this.refreshRecentSoon()));
@@ -725,6 +737,8 @@ class HomeView extends ItemView {
 
   async onClose() {
     this.cancelPendingSearch();
+    if (this.drag) window.clearTimeout(this.drag.timer);
+    this.drag = null;
     this.invalidateSearchCache();
     this.contentEl.empty();
   }
@@ -815,6 +829,11 @@ class HomeView extends ItemView {
 
   renderRecent() {
     if (!this.recentEl) return;
+    if (this.drag?.active) {
+      // No se repinta mientras se arrastra (se perdería la tarjeta que se mueve): se hará al soltar.
+      this.renderPending = true;
+      return;
+    }
     this.recentEl.empty();
     this.recentTimeEls = [];
     this.recentItems = [];
@@ -885,8 +904,12 @@ class HomeView extends ItemView {
     });
     card.addEventListener('contextmenu', (e) => {
       e.preventDefault();
-      this.showCardMenu(e, file);
+      if (!this.drag) this.showCardMenu(e, file);
     });
+    card.addEventListener('pointerdown', (e) => this.onCardPointerDown(e, card));
+    card.addEventListener('pointermove', (e) => this.onCardPointerMove(e, card));
+    card.addEventListener('pointerup', (e) => this.onCardPointerUp(e, card));
+    card.addEventListener('pointercancel', (e) => this.onCardPointerCancel(e, card));
 
     card.createDiv({ cls: 'foyer__card-title', text: displayName(file) });
     const folder = folderOf(file);
@@ -922,6 +945,173 @@ class HomeView extends ItemView {
       this.removeRecentAt(this.recentItems.indexOf(item));
     });
     remove.addEventListener('auxclick', (e) => e.stopPropagation());
+  }
+
+  /* ── Arrastrar tarjetas ── */
+  // Eventos de puntero, para ratón y táctil. Con ratón el arrastre empieza al mover unos píxeles; en táctil, tras
+  // una pulsación larga (si el dedo se mueve antes es un desplazamiento y no se arrastra). Solo se guarda el orden.
+  onCardPointerDown(e, card) {
+    if (this.drag || this.hasQuery) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    const touch = e.pointerType === 'touch';
+    this.drag = {
+      card,
+      pointerId: e.pointerId,
+      touch,
+      startX: e.clientX,
+      startY: e.clientY,
+      x: e.clientX,
+      y: e.clientY,
+      active: false,
+      moved: false,
+      timer: touch ? window.setTimeout(() => this.startDrag(), LONG_PRESS_MS) : null,
+    };
+  }
+
+  onCardPointerMove(e, card) {
+    const drag = this.drag;
+    if (!drag || drag.card !== card || e.pointerId !== drag.pointerId) return;
+    drag.x = e.clientX;
+    drag.y = e.clientY;
+    if (!drag.active) {
+      const distance = Math.hypot(drag.x - drag.startX, drag.y - drag.startY);
+      if (drag.touch) {
+        if (distance > TOUCH_SCROLL_SLOP) this.dropDragCandidate(); // es un desplazamiento de la página
+        return;
+      }
+      if (distance < MOUSE_DRAG_SLOP) return;
+      this.startDrag();
+    }
+    this.dragTo();
+  }
+
+  onCardPointerUp(e, card) {
+    const drag = this.drag;
+    if (!drag || drag.card !== card || e.pointerId !== drag.pointerId) return;
+    this.endDrag(true);
+  }
+
+  onCardPointerCancel(e, card) {
+    const drag = this.drag;
+    if (!drag || drag.card !== card || e.pointerId !== drag.pointerId) return;
+    this.endDrag(false);
+  }
+
+  // Candidato descartado antes de empezar a arrastrar.
+  dropDragCandidate() {
+    if (!this.drag) return;
+    window.clearTimeout(this.drag.timer);
+    this.drag = null;
+  }
+
+  boardCards() {
+    return this.boardEl.children.filter((child) => child.classes.has('foyer__card'));
+  }
+
+  pathOfCard(card) {
+    return this.recentItems.find((item) => item.el === card)?.pinPath;
+  }
+
+  // Posición de una tarjeta en la rejilla sin contar transformaciones (offset*, relativo al tablero).
+  layoutRect(card) {
+    return { left: card.offsetLeft, top: card.offsetTop, width: card.offsetWidth, height: card.offsetHeight };
+  }
+
+  startDrag() {
+    const drag = this.drag;
+    if (!drag || drag.active) return;
+    window.clearTimeout(drag.timer);
+    drag.active = true;
+    drag.original = this.boardCards().map((card) => this.pathOfCard(card));
+    drag.card.addClass('is-dragging');
+    this.boardEl.addClass('is-reordering');
+    try {
+      drag.card.setPointerCapture?.(drag.pointerId);
+    } catch (_error) {
+      // sin captura, los eventos solo llegan mientras el puntero está sobre la tarjeta
+    }
+    // Punto de la tarjeta por el que se agarró, respecto a su centro
+    const board = this.boardEl.getBoundingClientRect();
+    const rect = this.layoutRect(drag.card);
+    drag.grabX = drag.startX - board.left - (rect.left + rect.width / 2);
+    drag.grabY = drag.startY - board.top - (rect.top + rect.height / 2);
+  }
+
+  // Coloca la tarjeta bajo el puntero y, si éste pasa sobre otra, la mueve a su sitio (las demás se deslizan).
+  dragTo() {
+    const drag = this.drag;
+    if (!drag?.active) return;
+    const board = this.boardEl.getBoundingClientRect();
+    const x = drag.x - board.left;
+    const y = drag.y - board.top;
+    if (Math.hypot(drag.x - drag.startX, drag.y - drag.startY) > MOUSE_DRAG_SLOP) drag.moved = true;
+
+    const cards = this.boardCards();
+    const over = cards.find((card) => {
+      if (card === drag.card) return false;
+      const r = this.layoutRect(card);
+      return x >= r.left && x < r.left + r.width && y >= r.top && y < r.top + r.height;
+    });
+    if (over) this.moveCardTo(drag.card, cards.indexOf(over));
+
+    const rect = this.layoutRect(drag.card);
+    const reduced = Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+    const dx = x - drag.grabX - (rect.left + rect.width / 2);
+    const dy = y - drag.grabY - (rect.top + rect.height / 2);
+    drag.card.style.transform = `translate(${dx}px, ${dy}px)${reduced ? '' : ' scale(1.04)'}`;
+  }
+
+  // Pone `card` en la posición `index` del tablero; las otras tarjetas que cambian de sitio se animan (FLIP).
+  moveCardTo(card, index) {
+    const others = this.boardCards().filter((item) => item !== card);
+    const first = new Map(others.map((item) => [item, this.layoutRect(item)]));
+    this.boardEl.insertBefore(card, others[index] ?? null);
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    for (const item of others) {
+      const before = first.get(item);
+      const after = this.layoutRect(item);
+      const dx = before.left - after.left;
+      const dy = before.top - after.top;
+      if ((!dx && !dy) || typeof item.animate !== 'function') continue;
+      item.getAnimations?.().forEach((animation) => animation.cancel());
+      item.animate([{ translate: `${dx}px ${dy}px` }, { translate: '0px 0px' }], { duration: FLIP_MS, easing: 'ease' });
+    }
+  }
+
+  // Suelta (guarda el orden) o cancela (vuelve a pintar como estaba) un arrastre.
+  endDrag(drop) {
+    const drag = this.drag;
+    this.drag = null;
+    window.clearTimeout(drag.timer);
+    if (drag.active) {
+      drag.card.removeClass('is-dragging');
+      this.boardEl.removeClass('is-reordering');
+      drag.card.style.transform = '';
+      drag.card.releasePointerCapture?.(drag.pointerId);
+      // El clic que sigue al soltar no debe abrir la nota
+      this.suppressClick = true;
+      window.setTimeout(() => { this.suppressClick = false; }, 0);
+
+      const order = this.boardCards().map((card) => this.pathOfCard(card));
+      const title = this.recentItems.find((item) => item.el === drag.card)?.pinTitle;
+      if (drop && order.join('\n') !== drag.original.join('\n')) {
+        const index = order.indexOf(this.pathOfCard(drag.card));
+        this.pendingMove = this.commitOrder(order, title, index).finally(() => { this.pendingMove = null; });
+        this.renderPending = false;
+        return;
+      }
+      if (drop && drag.touch && !drag.moved) {
+        // La pulsación larga ya no puede abrir el menú del sistema: al soltar sin mover, se abre el de la tarjeta.
+        const path = this.pathOfCard(drag.card);
+        const file = this.app.vault.getAbstractFileByPath(path);
+        if (file) this.showCardMenu(null, file, { x: drag.x, y: drag.y });
+      }
+      if (!drop) this.renderPending = true; // se descarta el reordenado visual
+    }
+    if (this.renderPending) {
+      this.renderPending = false;
+      this.renderRecent();
+    }
   }
 
   // Alt + flechas: mueve un puesto la tarjeta seleccionada (←/↑ antes, →/↓ después). Devuelve true si la tecla
@@ -1175,7 +1365,9 @@ class HomeView extends ItemView {
     el.setAttribute('aria-selected', 'false');
     list.push({ el, run });
     el.addEventListener('mousemove', () => { if (this.selected !== index) this.select(index); });
-    el.addEventListener('click', (e) => run(Keymap.isModEvent(e)));
+    el.addEventListener('click', (e) => {
+      if (!this.suppressClick) run(Keymap.isModEvent(e));
+    });
     el.addEventListener('auxclick', (e) => { if (e.button === 1) run('tab'); });
     if (file) {
       el.addEventListener('mouseover', (e) => {
