@@ -26,6 +26,7 @@ async function createViewFixture({
   const notices = main.notices;
   const removed = [];
   const unpinned = [];
+  const pinnedNow = [];
   const colored = [];
   const reorders = [];
   const plugin = {
@@ -54,6 +55,11 @@ async function createViewFixture({
         ...plugin.settings,
         pinned: plugin.settings.pinned.map((entry) => (entry.path === path ? { ...entry, color } : entry)),
       };
+      view.refreshSettings();
+    },
+    async pinFile(path) {
+      pinnedNow.push(path);
+      plugin.settings = { ...plugin.settings, pinned: [...plugin.settings.pinned, { path, color: '' }] };
       view.refreshSettings();
     },
     async unpinFile(path) {
@@ -92,7 +98,7 @@ async function createViewFixture({
     },
   };
   await view.onOpen();
-  return { main, view, plugin, files, opened, hoverEvents, leafCalls, notices, removed, unpinned, colored, reorders };
+  return { main, view, plugin, files, opened, hoverEvents, leafCalls, notices, removed, unpinned, pinnedNow, colored, reorders };
 }
 
 const isGroup = (el) => el.classes.has('foyer__board') || el.classes.has('foyer__recent-group');

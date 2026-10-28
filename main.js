@@ -929,19 +929,26 @@ class HomeView extends ItemView {
     this.recentTimeEls.push({ el: timeEl, path: file.path });
 
     if (!removable) return;
-    // Solo quita la entrada del historial; el archivo no se toca. Los clics no deben llegar a la fila (la abriría).
+    const strings = STRINGS[this.plugin.getEffectiveLanguage()];
+    // Fijar la nota: pasa al tablero de fijadas y deja de salir en Recientes.
+    this.addRowButton(row, 'foyer__row-pin', 'pin', strings.pinToFoyer, () => this.plugin.pinFile(file.path));
+    // Quitar solo borra la entrada del historial; el archivo no se toca.
     item.removePath = file.path;
-    const label = STRINGS[this.plugin.getEffectiveLanguage()].removeFromRecent;
-    const remove = row.createEl('button', {
-      cls: 'foyer__row-remove',
+    this.addRowButton(row, 'foyer__row-remove', 'x', strings.removeFromRecent, () => this.removeRecentAt(this.recentItems.indexOf(item)));
+  }
+
+  // Botón con icono al final de una fila. Sus clics no deben llegar a la fila (la abriría).
+  addRowButton(row, cls, icon, label, run) {
+    const button = row.createEl('button', {
+      cls,
       attr: { type: 'button', tabindex: '-1', 'aria-label': label, title: label },
     });
-    setIcon(remove, 'x');
-    remove.addEventListener('click', (e) => {
+    setIcon(button, icon);
+    button.addEventListener('click', (e) => {
       e.stopPropagation();
-      this.removeRecentAt(this.recentItems.indexOf(item));
+      run();
     });
-    remove.addEventListener('auxclick', (e) => e.stopPropagation());
+    button.addEventListener('auxclick', (e) => e.stopPropagation());
   }
 
   /* ── Arrastrar tarjetas ── */
