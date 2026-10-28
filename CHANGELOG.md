@@ -4,6 +4,20 @@ All notable changes to Foyer are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-10-28
+
+### Added
+
+- **Pinned notes.** A **Pinned** section above Recent keeps the notes you use every day. Pin or unpin from the file menu or with the commands **Pin current note to Foyer** and **Unpin current note from Foyer**, which only appear when they apply. Pinned paths are stored in the plugin settings (`data.json`), so they sync across devices, follow renames and are dropped when the file is deleted. Pinned notes are not repeated in Recent, and the Recent limit still applies to Recent.
+- **Recent management.** Remove a note from Recent with the **✕** on its row or the `Delete` key. This only removes the history entry; the note is never deleted. The new **Clear Recent history** command and settings button empty the per-device history.
+- **Commands.** **Focus Foyer search** puts the cursor in the search box (opening Foyer first when it is not the active view) and **Open Foyer in a new tab** opens another Foyer next to an existing one.
+- Spanish and English text for everything above.
+
+### Changed
+
+- With an empty search box, `↑` / `↓` walk Pinned and then Recent as one list.
+- A note you removed from Recent no longer reappears from Obsidian's own list of recently opened files.
+
 ## [1.1.2] - 2026-10-28
 
 ### Changed
@@ -69,6 +83,7 @@ No change in plugin behavior.
 - Hero image picked from the vault or uploaded from your computer (PNG, JPEG, GIF, WebP, AVIF, BMP), with a theme-colored symbol when no image is set.
 - Appearance inherited from the active Obsidian theme, in light and dark modes, with English and Spanish interface languages.
 
+[1.2.0]: https://github.com/ToniLopezPhoto/foyer/compare/1.1.2...1.2.0
 [1.1.2]: https://github.com/ToniLopezPhoto/foyer/compare/1.1.1...1.1.2
 [1.1.1]: https://github.com/ToniLopezPhoto/foyer/compare/1.1.0...1.1.1
 [1.1.0]: https://github.com/ToniLopezPhoto/foyer/compare/1.0.1...1.1.0

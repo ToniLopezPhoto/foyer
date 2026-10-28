@@ -41,6 +41,13 @@ It replaces Obsidian's empty new tabs with a welcoming space that feels like a n
 
 The full history is in [CHANGELOG.md](CHANGELOG.md).
 
+### What's new in 1.2
+
+- **Pinned notes:** keep the notes you return to every day in a **Pinned** section above Recent. Pin from the file menu (right-click a note) or with the commands **Pin current note to Foyer** and **Unpin current note from Foyer**. Pinned notes follow renames, disappear when the file is deleted, and sync across your devices with the rest of the plugin settings.
+- **Tidy your Recent list:** hover a row and press **✕**, or press `Delete` on the selected row, to remove it from Recent. This only removes the history entry; your note is never deleted. **Clear Recent history** (command palette or settings) empties the list on this device.
+- **New commands:** **Focus Foyer search** puts the cursor in the search box, opening Foyer first if needed, and **Open Foyer in a new tab** opens another Foyer next to the one you have.
+- Pinned notes are not repeated in Recent, and the Recent limit still applies to Recent.
+
 ### What's new in 1.1.2
 
 - **Clearer directory listing:** the plugin description now says what Foyer does, and the install instructions below start with the Obsidian Community directory.
@@ -70,7 +77,11 @@ Search note titles, file paths, and aliases with fuzzy matching. Notes that Obsi
 
 ### Continue where you left off
 
-Your recent notes reflect **when you actually opened them**, not when they were last edited. Relative timestamps stay fresh while Foyer is open, and history follows notes when you rename or move them. The history stays on this device and is not synced.
+Your recent notes reflect **when you actually opened them**, not when they were last edited. Relative timestamps stay fresh while Foyer is open, and history follows notes when you rename or move them. The history stays on this device and is not synced. Remove a note from Recent with its **✕** or the `Delete` key, or clear the list from the command palette; your notes are never touched.
+
+### Keep a few notes at hand
+
+Pin the notes you open all the time and they wait for you in a **Pinned** section above Recent, in the order you pinned them. Your pins are stored with the plugin settings, so they follow you across devices.
 
 ### Make the space yours
 
@@ -84,10 +95,25 @@ Foyer uses the active theme's colors and typography, works in light and dark mod
 
 | Shortcut | Action |
 | --- | --- |
-| `↑` / `↓` | Move through search results, or through Recent when the search box is empty |
+| `↑` / `↓` | Move through search results, or through Pinned and then Recent when the search box is empty |
 | `Enter` | Open the selected note |
 | `Ctrl/Cmd + Enter` | Open in a new tab |
 | `Shift + Enter` | Search note content with Obsidian's core Search plugin |
+| `Delete` | Remove the selected note from Recent (search box empty; pinned notes are unpinned from the file menu or command instead) |
+| `Escape` | Clear the search box |
+
+### Commands
+
+Foyer adds these to the command palette, so you can bind your own hotkeys in **Settings → Hotkeys**:
+
+| Command | What it does |
+| --- | --- |
+| Open home | Opens Foyer, reusing the one you already have |
+| Open Foyer in a new tab | Opens another Foyer in a new tab |
+| Focus Foyer search | Puts the cursor in the search box, opening Foyer first if it is not the active view |
+| Pin current note to Foyer | Pins the active note (shown only when the note is not pinned yet) |
+| Unpin current note from Foyer | Removes the active note from Pinned (shown only when it is pinned) |
+| Clear Recent history | Empties Recent on this device and shows a confirmation notice |
 
 If your query does not match an existing note, Foyer also offers to create it in your vault's configured default location for new notes. Add folders with `/`, such as `Projects/Ideas/Plan`: missing folders are created relative to the vault root, and an existing folder is reused even if the casing differs. A trailing `.md` or `/` is ignored, and folder names that start with a dot are dropped so Foyer never creates hidden folders.
 
@@ -133,6 +159,7 @@ Open **Settings → Community plugins → Foyer** to adjust:
 | Replace new tabs | Turns empty new tabs into Foyer (on by default); turn it off if you use another home-page plugin. Takes effect immediately |
 | Recent notes | How many notes appear under Recent, from 3 to 20 (default 8) |
 | Search results | How many results appear while searching, from 3 to 20 (default 7) |
+| Clear Recent history | Button that empties the Recent list on this device (pinned notes and files are not touched) |
 | Hero image | Selects an existing vault image or imports one into your attachments folder |
 
 The hero image supports PNG, JPEG, GIF, WebP, AVIF, and BMP. Its position is shown in the settings preview. Without an image, Foyer displays a subtle symbol in your theme's accent color.
@@ -141,7 +168,7 @@ The hero image supports PNG, JPEG, GIF, WebP, AVIF, and BMP. Its position is sho
 
 Foyer runs locally. It makes no network requests, includes no analytics, and does not send your notes or preferences anywhere.
 
-Settings are saved in `.obsidian/plugins/foyer/data.json` inside your vault. The small last-opened history (up to 200 entries) stays on this device only, in Obsidian's local storage for this vault. It is kept outside `data.json`, so it is not synced and does not cause sync conflicts. Images you import stay in your vault.
+Settings, including the paths of your pinned notes, are saved in `.obsidian/plugins/foyer/data.json` inside your vault. The small last-opened history (up to 200 entries) stays on this device only, in Obsidian's local storage for this vault. It is kept outside `data.json`, so it is not synced and does not cause sync conflicts. Images you import stay in your vault.
 
 **Vault access.** To power search, Foyer lists the files in your vault with Obsidian's `vault.getFiles()`. That list is built the first time you search, kept in memory, and refreshed when files change. The hero image picker lists your vault's image files too, only when you open it in the settings. Foyer uses file names, paths and the `aliases` from Obsidian's metadata cache; it does not read the contents of your notes for this. Files in Obsidian's **Excluded files** do not appear in search results. Nothing leaves your device.
 
@@ -172,9 +199,11 @@ Issues, bug reports, and pull requests are welcome via [GitHub Issues](https://g
 **Foyer** es una página de inicio minimalista para Obsidian. Sustituye las pestañas vacías por un espacio personal desde el que puedes buscar tus notas y retomar tu trabajo sin distracciones.
 
 - **Búsqueda rápida:** encuentra notas por nombre o ruta, navega con el teclado y crea notas nuevas cuando lo necesites.
-- **Recientes de verdad:** muestra las notas que has abierto, con tiempos relativos independientes de la última modificación del archivo.
+- **Recientes de verdad:** muestra las notas que has abierto, con tiempos relativos independientes de la última modificación del archivo, y te deja fijar las que usas a diario.
 - **Un inicio personal:** saludo según la hora del día, nombre opcional e imagen de cabecera a tu elección.
 - **Integración natural:** hereda colores y tipografías del tema de Obsidian, funciona en escritorio y móvil, y no necesita conexión a Internet.
+
+**Novedades en 1.2:** notas fijadas en una sección **Fijadas** sobre Recientes (desde el menú de archivo o con los comandos «Fijar nota actual en Foyer» y «Quitar nota actual de Foyer»; se sincronizan con los ajustes y siguen los renombrados). Quitar una nota de Recientes con la **✕** al pasar el ratón o con la tecla `Supr` (solo borra la entrada del historial, nunca la nota) y el comando «Borrar historial de Recientes», también disponible en los ajustes. Dos comandos nuevos: «Enfocar la búsqueda de Foyer» y «Abrir Foyer en una pestaña nueva». Las notas fijadas no se repiten en Recientes.
 
 **Novedades en 1.1.2:** descripción del plugin más clara, el marcador del buscador termina en un solo punto suspensivo (`Buscar en el vault…`) y la instalación desde el directorio pasa a ser la opción principal. La versión 1.1.1 añade atestaciones de procedencia de compilación en los archivos de cada versión y documenta cómo Foyer lista los archivos del vault, sin cambios de comportamiento. Historial completo en [CHANGELOG.md](CHANGELOG.md).
 
