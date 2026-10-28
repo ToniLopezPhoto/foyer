@@ -43,7 +43,7 @@ The full history is in [CHANGELOG.md](CHANGELOG.md).
 
 ### What's new in 1.2
 
-- **Pinned notes:** keep the notes you return to every day in a **Pinned** section above Recent. Pin from the file menu (right-click a note) or with the commands **Pin current note to Foyer** and **Unpin current note from Foyer**. Pinned notes follow renames, disappear when the file is deleted, and sync across your devices with the rest of the plugin settings.
+- **A board of sticky notes for the notes you use every day:** pin a note from the file menu (right-click it) or with the commands **Pin current note to Foyer** and **Unpin current note from Foyer**, and it appears as a square card in a **Pinned** section above Recent. Cards show only the note title and its folder, tilt slightly, lift when you point at them, and can take a color from your theme's palette. Right-click a card to open it, open it in a new tab, change its color or unpin it. Drag cards to reorder them (on touch, press and hold first), or select one and use `Alt` + arrow keys. Pins, colors and order follow renames and sync across your devices with the rest of the plugin settings.
 - **Tidy your Recent list:** hover a row and press **✕**, or press `Delete` on the selected row, to remove it from Recent. This only removes the history entry; your note is never deleted. **Clear Recent history** (command palette or settings) empties the list on this device.
 - **New commands:** **Focus Foyer search** puts the cursor in the search box, opening Foyer first if needed, and **Open Foyer in a new tab** opens another Foyer next to the one you have.
 - Pinned notes are not repeated in Recent, and the Recent limit still applies to Recent.
@@ -81,7 +81,7 @@ Your recent notes reflect **when you actually opened them**, not when they were 
 
 ### Keep a few notes at hand
 
-Pin the notes you open all the time and they wait for you in a **Pinned** section above Recent, in the order you pinned them. Your pins are stored with the plugin settings, so they follow you across devices.
+Pin the notes you open all the time and they wait for you as a board of square sticky notes in a **Pinned** section above Recent. Each card shows the note's title and folder (Foyer never reads the contents of your notes to draw it), leans a little to one side, and straightens and lifts when you point at it. Give a card a color from your theme's palette (yellow, orange, red, purple, blue, cyan, green or pink) from its right-click menu, or leave it neutral. The board is a responsive grid, about five cards per row on a wide pane and two on a phone. Drag a card to put it where you want it: with a mouse just drag, on touch press and hold for a moment first. With the keyboard, select a card and press `Alt` + an arrow key; a screen reader announces its new position. Only the order is stored, so your board looks right on every screen, and it is saved with the plugin settings so it follows you across devices. If you prefer less motion, Foyer respects your system's reduced-motion setting.
 
 ### Make the space yours
 
@@ -96,6 +96,7 @@ Foyer uses the active theme's colors and typography, works in light and dark mod
 | Shortcut | Action |
 | --- | --- |
 | `↑` / `↓` | Move through search results, or through Pinned and then Recent when the search box is empty |
+| `Alt` + `←` `↑` / `→` `↓` | Move the selected pinned card one place earlier / later (search box empty) |
 | `Enter` | Open the selected note |
 | `Ctrl/Cmd + Enter` | Open in a new tab |
 | `Shift + Enter` | Search note content with Obsidian's core Search plugin |
@@ -111,7 +112,7 @@ Foyer adds these to the command palette, so you can bind your own hotkeys in **S
 | Open home | Opens Foyer, reusing the one you already have |
 | Open Foyer in a new tab | Opens another Foyer in a new tab |
 | Focus Foyer search | Puts the cursor in the search box, opening Foyer first if it is not the active view |
-| Pin current note to Foyer | Pins the active note (shown only when the note is not pinned yet) |
+| Pin current note to Foyer | Pins the active note as a card (shown only when the note is not pinned yet) |
 | Unpin current note from Foyer | Removes the active note from Pinned (shown only when it is pinned) |
 | Clear Recent history | Empties Recent on this device and shows a confirmation notice |
 
@@ -168,7 +169,7 @@ The hero image supports PNG, JPEG, GIF, WebP, AVIF, and BMP. Its position is sho
 
 Foyer runs locally. It makes no network requests, includes no analytics, and does not send your notes or preferences anywhere.
 
-Settings, including the paths of your pinned notes, are saved in `.obsidian/plugins/foyer/data.json` inside your vault. The small last-opened history (up to 200 entries) stays on this device only, in Obsidian's local storage for this vault. It is kept outside `data.json`, so it is not synced and does not cause sync conflicts. Images you import stay in your vault.
+Settings, including your pinned notes (their paths, colors and order), are saved in `.obsidian/plugins/foyer/data.json` inside your vault. The small last-opened history (up to 200 entries) stays on this device only, in Obsidian's local storage for this vault. It is kept outside `data.json`, so it is not synced and does not cause sync conflicts. Images you import stay in your vault.
 
 **Vault access.** To power search, Foyer lists the files in your vault with Obsidian's `vault.getFiles()`. That list is built the first time you search, kept in memory, and refreshed when files change. The hero image picker lists your vault's image files too, only when you open it in the settings. Foyer uses file names, paths and the `aliases` from Obsidian's metadata cache; it does not read the contents of your notes for this. Files in Obsidian's **Excluded files** do not appear in search results. Nothing leaves your device.
 
@@ -203,7 +204,7 @@ Issues, bug reports, and pull requests are welcome via [GitHub Issues](https://g
 - **Un inicio personal:** saludo según la hora del día, nombre opcional e imagen de cabecera a tu elección.
 - **Integración natural:** hereda colores y tipografías del tema de Obsidian, funciona en escritorio y móvil, y no necesita conexión a Internet.
 
-**Novedades en 1.2:** notas fijadas en una sección **Fijadas** sobre Recientes (desde el menú de archivo o con los comandos «Fijar nota actual en Foyer» y «Quitar nota actual de Foyer»; se sincronizan con los ajustes y siguen los renombrados). Quitar una nota de Recientes con la **✕** al pasar el ratón o con la tecla `Supr` (solo borra la entrada del historial, nunca la nota) y el comando «Borrar historial de Recientes», también disponible en los ajustes. Dos comandos nuevos: «Enfocar la búsqueda de Foyer» y «Abrir Foyer en una pestaña nueva». Las notas fijadas no se repiten en Recientes.
+**Novedades en 1.2:** las notas fijadas forman un tablero de notas adhesivas en una sección **Fijadas** sobre Recientes. Se fijan desde el menú de archivo o con los comandos «Fijar nota actual en Foyer» y «Quitar nota actual de Foyer»; cada tarjeta es cuadrada, muestra solo el título y la carpeta (Foyer no lee el contenido de tus notas), puede tener un color de la paleta de tu tema y tiene un menú contextual (abrir, abrir en pestaña nueva, color, quitar). Las reordenas arrastrándolas (en táctil, con una pulsación larga) o con `Alt` + flechas; el orden, los colores y las fijadas se guardan en los ajustes, se sincronizan entre dispositivos y siguen los renombrados. Quitar una nota de Recientes con la **✕** al pasar el ratón o con la tecla `Supr` (solo borra la entrada del historial, nunca la nota) y el comando «Borrar historial de Recientes», también disponible en los ajustes. Dos comandos nuevos: «Enfocar la búsqueda de Foyer» y «Abrir Foyer en una pestaña nueva». Las notas fijadas no se repiten en Recientes.
 
 **Novedades en 1.1.2:** descripción del plugin más clara, el marcador del buscador termina en un solo punto suspensivo (`Buscar en el vault…`) y la instalación desde el directorio pasa a ser la opción principal. La versión 1.1.1 añade atestaciones de procedencia de compilación en los archivos de cada versión y documenta cómo Foyer lista los archivos del vault, sin cambios de comportamiento. Historial completo en [CHANGELOG.md](CHANGELOG.md).
 
