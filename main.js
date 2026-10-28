@@ -81,6 +81,8 @@ const STRINGS = {
     settingsOpenOnStartupDescription: 'Muestra el inicio al arrancar Obsidian. El cambio se aplica la próxima vez que abras Obsidian.',
     settingsReplaceNewTab: 'Reemplazar pestañas nuevas',
     settingsReplaceNewTabDescription: 'Las pestañas nuevas vacías muestran el inicio. Desactívalo si usas otro plugin de página de inicio.',
+    allHidden: 'Todo está oculto. Vuelve a activar alguna sección en los ajustes de Foyer.',
+    searchHiddenNotice: 'El buscador está oculto. Actívalo en los ajustes de Foyer.',
     settingsShowGreeting: 'Mostrar el saludo',
     settingsShowGreetingDescription: 'La fecha, el saludo y la imagen de cabecera.',
     settingsShowSearch: 'Mostrar el buscador',
@@ -162,6 +164,8 @@ const STRINGS = {
     settingsOpenOnStartupDescription: 'Show the home page when Obsidian starts. Takes effect the next time you start Obsidian.',
     settingsReplaceNewTab: 'Replace new tabs',
     settingsReplaceNewTabDescription: 'Empty new tabs show the home page. Turn this off if you use another home-page plugin.',
+    allHidden: 'Everything on this page is hidden. Turn a section back on in Foyer’s settings.',
+    searchHiddenNotice: 'The search box is hidden. Turn it on in Foyer’s settings.',
     settingsShowGreeting: 'Show greeting',
     settingsShowGreetingDescription: 'The date, the greeting and the hero image.',
     settingsShowSearch: 'Show search box',
@@ -739,9 +743,17 @@ class HomeView extends ItemView {
     this.recentWrapEl = recent;
     this.recentEl = recent.createDiv({ cls: 'foyer__list', attr: { role: 'listbox', id: `${this.uid}-recent` } });
 
+    // Aviso cuando no queda nada visible (ver refresh)
+    this.hintEl = this.wrapEl.createDiv({ cls: 'foyer__hint' });
+    this.hintEl.hidden = true;
+
     // Eventos
     this.registerDomEvent(this.inputEl, 'input', () => this.scheduleSearch());
     this.registerDomEvent(this.inputEl, 'keydown', (e) => this.onKeyDown(e));
+    // Sin buscador, el teclado actúa desde la propia lista (el buscador ya gestiona sus teclas)
+    this.registerDomEvent(root, 'keydown', (e) => {
+      if (e.target !== this.inputEl && this.plugin.settings.showSearch === false) this.onKeyDown(e);
+    });
     // En táctil, tras la pulsación larga el dedo arrastra la tarjeta: la página no debe desplazarse.
     this.registerDomEvent(this.recentEl, 'touchmove', (e) => {
       if (this.drag?.active && e.cancelable) e.preventDefault();
@@ -789,6 +801,20 @@ class HomeView extends ItemView {
     this.searchEl.hidden = settings.showSearch === false;
     this.recentWrapEl.hidden = settings.showPinned === false && settings.showRecent === false;
     this.wrapEl.toggleClass('is-columns', settings.layout === 'columns');
+    // Sin buscador la lista es lo que recibe el foco y el teclado; lo que se hubiera escrito se descarta
+    if (settings.showSearch === false) {
+      this.recentEl.setAttribute('tabindex', '0');
+      if (this.inputEl.value) {
+        this.inputEl.value = '';
+        this.updateResults();
+      }
+    } else {
+      this.recentEl.removeAttribute('tabindex');
+    }
+    const allHidden = settings.showGreeting === false && settings.showSearch === false
+      && settings.showPinned === false && settings.showRecent === false;
+    this.hintEl.hidden = !allHidden;
+    this.hintEl.setText(strings.allHidden);
     this.refreshHeader();
     this.inputEl.placeholder = strings.searchPlaceholder;
     this.inputEl.setAttribute('aria-label', strings.searchLabel);
@@ -830,9 +856,18 @@ class HomeView extends ItemView {
     window.setTimeout(() => {
       if (!this.inputEl) return;
       if (this.app.workspace.getActiveViewOfType(HomeView) !== this) return;
-      if (this.plugin.settings.showSearch === false) return; // sin buscador no hay dónde poner el cursor
+      if (this.plugin.settings.showSearch === false) {
+        this.focusList(); // sin buscador, el foco va a la lista
+        return;
+      }
       if (document.activeElement !== this.inputEl) this.inputEl.focus();
     }, 40);
+  }
+
+  // Sin buscador: el cursor va al listbox y se selecciona la primera tarjeta o fila visible.
+  focusList() {
+    this.recentEl.focus();
+    if (this.selected < 0 && this.recentItems.length) this.select(0);
   }
 
   /* ── Fijadas y recientes ── */
@@ -1484,6 +1519,9 @@ class HomeView extends ItemView {
     const active = list[this.selected];
     if (active) this.inputEl.setAttribute('aria-activedescendant', active.el.getAttribute('id'));
     else this.inputEl.removeAttribute('aria-activedescendant');
+    // Sin buscador, la opción activa la anuncia el propio listbox, que es quien tiene el foco
+    if (active && this.plugin.settings.showSearch === false) this.recentEl.setAttribute('aria-activedescendant', active.el.getAttribute('id'));
+    else this.recentEl.removeAttribute('aria-activedescendant');
   }
 
   onKeyDown(e) {
@@ -2012,7 +2050,14 @@ module.exports = class FoyerPlugin extends Plugin {
   async focusSearch() {
     const ws = this.app.workspace;
     if (!ws.getActiveViewOfType(HomeView)) await this.openHome();
-    ws.getActiveViewOfType(HomeView)?.inputEl?.focus();
+    const view = ws.getActiveViewOfType(HomeView);
+    if (!view) return;
+    // Con el buscador oculto no se fuerza su visibilidad: se avisa de cómo volver a mostrarlo
+    if (this.settings.showSearch === false) {
+      new Notice(STRINGS[this.getEffectiveLanguage()].searchHiddenNotice);
+      return;
+    }
+    view.inputEl?.focus();
   }
 
   // Abre otro Foyer en una pestaña nueva, aunque ya haya uno abierto (openHome reutiliza el existente).

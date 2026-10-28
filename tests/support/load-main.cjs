@@ -62,6 +62,7 @@ function createElement(options = {}) {
     addEventListener(type, handler) { (this.listeners[type] ||= []).push(handler); },
     dispatch(type, event = {}) { for (const handler of this.listeners[type] || []) handler(event); },
     scrollIntoView() {},
+    focus() { this.focusCount = (this.focusCount || 0) + 1; },
     empty() { this.children = []; this.text = ''; },
   };
   if (options.cls) el.addClass(...options.cls.split(' '));

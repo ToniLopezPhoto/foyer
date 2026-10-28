@@ -528,6 +528,19 @@
   display: flex;
   flex-direction: column;
 }
+/* Sin buscador el listbox recibe el foco: la fila o tarjeta seleccionada ya lo indica */
+.foyer__list:focus {
+  outline: none;
+}
+
+/* Aviso cuando todo está oculto */
+.foyer__hint {
+  padding-top: 2em;
+  text-align: center;
+  font-size: 0.85em;
+  font-style: italic;
+  color: var(--text-faint);
+}
 
 .foyer__row {
   display: grid;

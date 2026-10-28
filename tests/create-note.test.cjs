@@ -60,6 +60,7 @@ function search(view, query) {
   view.inputEl = createElement();
   view.inputEl.value = query;
   view.resultsEl = createElement();
+  view.recentEl = createElement();
   view.wrapEl = createElement();
   view.updateResults();
   return view.items;
