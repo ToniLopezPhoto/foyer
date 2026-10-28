@@ -31,7 +31,7 @@ const STRINGS = {
   es: {
     viewTitle: 'Inicio',
     greeting: ['Buenos días', 'Buenas tardes', 'Buenas noches'],
-    searchPlaceholder: 'Buscar en el vault....',
+    searchPlaceholder: 'Buscar en el vault…',
     searchLabel: 'Buscar notas',
     keyboardHelp: ['↑↓ moverse', '↵ abrir', (mod) => `${mod} ↵ nueva pestaña`, '⇧ ↵ buscar en contenido'],
     recent: 'Recientes',
@@ -79,7 +79,7 @@ const STRINGS = {
   en: {
     viewTitle: 'Home',
     greeting: ['Good morning', 'Good afternoon', 'Good evening'],
-    searchPlaceholder: 'Search the vault....',
+    searchPlaceholder: 'Search the vault…',
     searchLabel: 'Search notes',
     keyboardHelp: ['↑↓ navigate', '↵ open', (mod) => `${mod} ↵ new tab`, '⇧ ↵ search content'],
     recent: 'Recent',

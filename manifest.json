@@ -1,9 +1,9 @@
 {
   "id": "foyer",
   "name": "Foyer",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "minAppVersion": "1.8.7",
-  "description": "A beautiful, minimal start page for your notes. Instant fuzzy search, real recent history, and a warm greeting.",
+  "description": "Turn every new tab into a calm home page: instant fuzzy search, recently opened notes, and a personal greeting. Private and offline.",
   "author": "Toni López",
   "authorUrl": "https://github.com/ToniLopezPhoto",
   "isDesktopOnly": false

@@ -91,6 +91,15 @@ test('both languages define every new label and description', () => {
   }
 });
 
+test('search placeholders end with a single ellipsis character', () => {
+  const { settingsModule } = loadMain();
+  for (const language of ['es', 'en']) {
+    const placeholder = settingsModule.STRINGS[language].searchPlaceholder;
+    assert.ok(placeholder.endsWith('…'), `${language}: ${placeholder}`);
+    assert.ok(!placeholder.includes('..'), `${language}: ${placeholder}`);
+  }
+});
+
 /* ── Limits honored by the view ── */
 
 function createViewFixture(settings) {
