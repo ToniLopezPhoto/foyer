@@ -85,7 +85,7 @@ Pin the notes you open all the time and they wait for you as a board of square s
 
 ### Make the space yours
 
-A greeting changes with the time of day and can include your name. Add a personal image from your vault or upload one from your computer; leave it unset for a small accent-colored symbol instead.
+A greeting changes with the time of day and can include your name. Add a personal image from your vault or upload one from your computer; leave it unset to show the Foyer archway mark in your theme's accent color instead.
 
 ### Fit right into Obsidian
 
@@ -169,7 +169,7 @@ Open **Settings → Community plugins → Foyer** to adjust:
 | Clear Recent history | Button that empties the Recent list on this device (pinned notes and files are not touched) |
 | Hero image | Selects an existing vault image or imports one into your attachments folder |
 
-The hero image supports PNG, JPEG, GIF, WebP, AVIF, and BMP. Its position is shown in the settings preview. Without an image, Foyer displays a subtle symbol in your theme's accent color.
+The hero image supports PNG, JPEG, GIF, WebP, AVIF, and BMP. Its position is shown in the settings preview. Without an image, Foyer displays its archway mark in your theme's accent color.
 
 ## Privacy, by design
 

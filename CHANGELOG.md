@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - With an empty search box, `↑` / `↓` walk Pinned and then Recent as one list.
 - A note you removed from Recent no longer reappears from Obsidian's own list of recently opened files.
+- Without a hero image, the header shows the Foyer archway mark in the theme accent color instead of the spark.
 
 ## [1.1.2] - 2026-10-28
 

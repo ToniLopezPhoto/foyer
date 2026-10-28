@@ -115,7 +115,7 @@ const STRINGS = {
     infoPoints: [
       ['layout-template', 'En la cabecera de la página de inicio, justo encima de la fecha y el saludo.'],
       ['crop', 'Se recorta automáticamente para encajar (máx. 280 × 180 px, esquinas redondeadas). Funcionan mejor las imágenes horizontales.'],
-      ['sparkles', 'Sin imagen, se muestra el destello con el color de acento del tema.'],
+      ['door-open', 'Sin imagen, se muestra la marca de Foyer con el color de acento del tema.'],
     ],
     infoCurrent: 'Imagen actual:',
   },
@@ -198,7 +198,7 @@ const STRINGS = {
     infoPoints: [
       ['layout-template', 'In the header of the home page, right above the date and greeting.'],
       ['crop', 'It is cropped automatically to fit (max. 280 × 180 px, rounded corners). Landscape images work best.'],
-      ['sparkles', 'Without an image, the spark in the theme accent color is shown.'],
+      ['door-open', 'Without an image, the Foyer mark in the theme accent color is shown.'],
     ],
     infoCurrent: 'Current image:',
   },
@@ -639,30 +639,16 @@ function iconFor(file) {
   return ICONS[file.extension] || 'file';
 }
 
-// Pequeño destello radial, en el color de acento del tema
-function buildSpark() {
+// Marca de Foyer (el arco de assets/foyer-mark.svg, sin el fondo), en el color de acento del tema
+function buildMark() {
   const svg = createSvg('svg', {
-    attr: {
-      viewBox: '0 0 24 24',
-      fill: 'none',
-      stroke: 'currentColor',
-      'stroke-width': '1.8',
-      'stroke-linecap': 'round',
-    },
+    attr: { viewBox: '40 40 176 168', fill: 'none', stroke: 'currentColor', 'aria-hidden': 'true' },
   });
-  for (let i = 0; i < 12; i++) {
-    const a = (i * Math.PI) / 6;
-    const r1 = 2.6;
-    const r2 = i % 2 ? 7.4 : 10.4;
-    svg.createSvg('line', {
-      attr: {
-        x1: (12 + r1 * Math.cos(a)).toFixed(2),
-        y1: (12 + r1 * Math.sin(a)).toFixed(2),
-        x2: (12 + r2 * Math.cos(a)).toFixed(2),
-        y2: (12 + r2 * Math.sin(a)).toFixed(2),
-      },
-    });
-  }
+  // Arco exterior, puerta, luz interior y umbral
+  svg.createSvg('path', { attr: { d: 'M57 204V114A71 71 0 0 1 199 114V204', 'stroke-width': '8', 'stroke-opacity': '0.45' } });
+  svg.createSvg('path', { attr: { d: 'M86 204V117A42 42 0 0 1 170 117V204Z', 'stroke-width': '8', fill: 'currentColor', 'fill-opacity': '0.12' } });
+  svg.createSvg('path', { attr: { d: 'M109 204V131A19 19 0 0 1 147 131V204Z', stroke: 'none', fill: 'currentColor' } });
+  svg.createSvg('path', { attr: { d: 'M44 204H212', 'stroke-width': '8', 'stroke-linecap': 'round' } });
   return svg;
 }
 
@@ -706,7 +692,7 @@ class HomeView extends ItemView {
     const hero = this.wrapEl.createDiv('foyer__hero');
     this.heroEl = hero;
     this.sparkEl = hero.createDiv('foyer__spark');
-    this.sparkEl.appendChild(buildSpark());
+    this.sparkEl.appendChild(buildMark());
     this.heroImageEl = hero.createEl('img', { cls: 'foyer__image', attr: { alt: '' } });
     this.heroImageEl.hidden = true;
     this.registerDomEvent(this.heroImageEl, 'error', () => this.showSpark());
@@ -1835,7 +1821,7 @@ class HomeSettingTab extends PluginSettingTab {
     const mock = info.createDiv({ cls: 'foyer-settings__mock', attr: { 'aria-hidden': 'true' } });
     const slot = mock.createDiv({ cls: 'foyer-settings__slot' });
     const spark = slot.createDiv({ cls: 'foyer-settings__spark' });
-    spark.appendChild(buildSpark());
+    spark.appendChild(buildMark());
     const resolved = resolveHeroImage(this.app.vault, this.plugin.settings.heroImagePath, TFile);
     if (resolved) {
       const image = slot.createEl('img', { cls: 'foyer-settings__image', attr: { src: resolved.src, alt: '' } });
