@@ -15,6 +15,9 @@
 
 /* ── Lienzo ── */
 .foyer.view-content {
+  /* Tamaños de letra compartidos por las filas de Recientes y las tarjetas de Fijadas */
+  --foyer-title-size: 0.88em;
+  --foyer-path-size: 0.62em;
   container: foyer / inline-size; /* para colapsar las dos columnas según el ancho del panel */
   display: flex;
   justify-content: center;
@@ -553,14 +556,14 @@
   min-width: 0;
 }
 .foyer__row-title {
-  font-size: 0.88em;
+  font-size: var(--foyer-title-size);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .foyer__row-path {
   font-family: var(--font-interface);
-  font-size: 0.62em;
+  font-size: var(--foyer-path-size);
   color: var(--text-faint);
   white-space: nowrap;
   overflow: hidden;
@@ -629,6 +632,7 @@
 }
 
 .foyer__card {
+  --foyer-card-line: var(--background-modifier-border); /* borde y línea de la esquina doblada */
   position: relative;
   box-sizing: border-box;
   aspect-ratio: 1 / 1;
@@ -639,52 +643,57 @@
   gap: 0.3em;
   padding: 0.8em 0.8em 0.7em;
   overflow: hidden;
-  border: 1px solid var(--background-modifier-border);
+  border: 1px solid var(--foyer-card-line);
   border-radius: 6px 6px 14px 6px;
   background: transparent;
-  box-shadow: var(--shadow-s);
   color: var(--text-normal);
   cursor: pointer;
   transform: rotate(var(--foyer-tilt, 0deg));
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  transition: transform 0.18s ease;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
 }
+/* Al señalarla solo se endereza: sin sombra ni elevación */
 .foyer__card:hover,
 .foyer__card.is-selected {
-  transform: rotate(0deg) translateY(-3px);
+  transform: rotate(0deg);
   z-index: 1;
 }
 .foyer__card.is-selected {
   border-color: var(--interactive-accent);
 }
 
-/* Colores de la paleta del tema: el color de la nota solo se ve en el borde, nunca como fondo */
-.foyer__card--yellow { border-color: rgba(var(--color-yellow-rgb), 0.8); }
-.foyer__card--orange { border-color: rgba(var(--color-orange-rgb), 0.8); }
-.foyer__card--red { border-color: rgba(var(--color-red-rgb), 0.8); }
-.foyer__card--purple { border-color: rgba(var(--color-purple-rgb), 0.8); }
-.foyer__card--blue { border-color: rgba(var(--color-blue-rgb), 0.8); }
-.foyer__card--cyan { border-color: rgba(var(--color-cyan-rgb), 0.8); }
-.foyer__card--green { border-color: rgba(var(--color-green-rgb), 0.8); }
-.foyer__card--pink { border-color: rgba(var(--color-pink-rgb), 0.8); }
+/* Colores de la paleta del tema: el color de la nota solo tiñe el borde y la línea de la esquina, nunca un fondo */
+.foyer__card--yellow { --foyer-card-line: rgba(var(--color-yellow-rgb), 0.8); }
+.foyer__card--orange { --foyer-card-line: rgba(var(--color-orange-rgb), 0.8); }
+.foyer__card--red { --foyer-card-line: rgba(var(--color-red-rgb), 0.8); }
+.foyer__card--purple { --foyer-card-line: rgba(var(--color-purple-rgb), 0.8); }
+.foyer__card--blue { --foyer-card-line: rgba(var(--color-blue-rgb), 0.8); }
+.foyer__card--cyan { --foyer-card-line: rgba(var(--color-cyan-rgb), 0.8); }
+.foyer__card--green { --foyer-card-line: rgba(var(--color-green-rgb), 0.8); }
+.foyer__card--pink { --foyer-card-line: rgba(var(--color-pink-rgb), 0.8); }
 
-/* Esquina doblada */
+/* Esquina doblada: solo una línea en diagonal, sin relleno */
 .foyer__card-fold {
   position: absolute;
   right: 0;
   bottom: 0;
   width: 16px;
   height: 16px;
-  background: linear-gradient(135deg, var(--background-primary) 50%, rgba(var(--mono-rgb-100), 0.1) 50%);
-  border-top-left-radius: 4px;
+  background: linear-gradient(
+    135deg,
+    transparent calc(50% - 0.5px),
+    var(--foyer-card-line) calc(50% - 0.5px),
+    var(--foyer-card-line) calc(50% + 0.5px),
+    transparent calc(50% + 0.5px)
+  );
   pointer-events: none;
 }
 
 /* Mismo tamaño y grosor que el título de una fila de Recientes (.foyer__row-title) */
 .foyer__card-title {
-  font-size: 0.88em;
+  font-size: var(--foyer-title-size);
   display: -webkit-box;
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
@@ -693,7 +702,7 @@
 }
 .foyer__card-path {
   font-family: var(--font-interface);
-  font-size: 0.62em;
+  font-size: var(--foyer-path-size);
   color: var(--text-faint);
   white-space: nowrap;
   overflow: hidden;

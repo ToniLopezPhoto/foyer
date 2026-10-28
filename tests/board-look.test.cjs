@@ -22,11 +22,24 @@ const property = (selector, name) => {
 };
 
 /* ── Look of the sticky note ── */
-test('hovering or selecting a card changes no shadow', () => {
+test('hovering or selecting a card adds no shadow and no lift; it only straightens the card', () => {
   for (const selector of ['.foyer__card:hover', '.foyer__card.is-selected']) {
     assert.ok(declarations(selector), selector);
     assert.equal(property(selector, 'box-shadow'), null, selector);
+    assert.doesNotMatch(declarations(selector), /translate/, selector);
   }
+  assert.equal(property('.foyer__card:hover', 'transform'), 'rotate(0deg)');
+});
+
+test('the resting card has no shadow, just a subtle theme border', () => {
+  assert.equal(property('.foyer__card', 'box-shadow'), null);
+  assert.equal(property('.foyer__card', 'border'), '1px solid var(--foyer-card-line)');
+  assert.equal(property('.foyer__card', '--foyer-card-line'), 'var(--background-modifier-border)');
+  assert.match(property('.foyer__card', 'transition'), /^transform [\d.]+s ease$/); // nothing animates a shadow
+});
+
+test('a card still gets a soft shadow while it is being dragged', () => {
+  assert.match(declarations('.foyer__card.is-dragging'), /box-shadow:/);
 });
 
 test('the card has no background fill and no tint', () => {
@@ -35,15 +48,29 @@ test('the card has no background fill and no tint', () => {
   assert.doesNotMatch(declarations('.foyer__card'), /linear-gradient/);
 });
 
-test('a pin color shows as the card border, never as a fill', () => {
+test('a pin color tints the border and the fold line, never a fill', () => {
   for (const color of ['yellow', 'orange', 'red', 'purple', 'blue', 'cyan', 'green', 'pink']) {
     const body = declarations(`.foyer__card--${color}`);
-    assert.match(body, new RegExp(`border-color:\\s*rgba\\(var\\(--color-${color}-rgb\\)`), color);
+    assert.match(body, new RegExp(`--foyer-card-line:\\s*rgba\\(var\\(--color-${color}-rgb\\)`), color);
     assert.doesNotMatch(body, /background/, color);
   }
 });
 
-test('the card text has the same size and weight as the Recent rows', () => {
+test('the folded corner is a line drawn with the border color, without a fill', () => {
+  const body = declarations('.foyer__card-fold');
+  assert.match(body, /var\(--foyer-card-line\)/);
+  assert.doesNotMatch(body, /background-primary|rgba\(var\(--mono|background-color/);
+  assert.match(property('.foyer__card-fold', 'background'), /transparent/);
+});
+
+test('the card text takes its size from the same properties as the Recent rows', () => {
+  assert.equal(property('.foyer__row-title', 'font-size'), 'var(--foyer-title-size)');
+  assert.equal(property('.foyer__card-title', 'font-size'), 'var(--foyer-title-size)');
+  assert.equal(property('.foyer__row-path', 'font-size'), 'var(--foyer-path-size)');
+  assert.equal(property('.foyer__card-path', 'font-size'), 'var(--foyer-path-size)');
+  assert.equal(property('.foyer.view-content', '--foyer-title-size'), '0.88em');
+  assert.equal(property('.foyer.view-content', '--foyer-path-size'), '0.62em');
+  assert.equal((css.match(/0\.88em/g) || []).length, 1, 'the size is written once');
   assert.equal(property('.foyer__card-title', 'font-size'), property('.foyer__row-title', 'font-size'));
   assert.equal(property('.foyer__card-title', 'font-weight'), property('.foyer__row-title', 'font-weight')); // both unset
   assert.equal(property('.foyer__card-title', 'font-weight'), null);
