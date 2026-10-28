@@ -124,8 +124,10 @@ function subsequenceFuzzy(query) {
 // flushDebounced() runs the last pending call of each debouncer. fuzzy replaces prepareFuzzySearch.
 // With animationFrames, window.requestAnimationFrame exists and its callbacks stay in frames.queue
 // until frames.flush() is called.
-function loadMain({ deferDebounce = false, fuzzy = null, animationFrames = false } = {}) {
+// With submenus: false, menu items have no setSubmenu() (older Obsidian). `menus` records every Menu created.
+function loadMain({ deferDebounce = false, fuzzy = null, animationFrames = false, submenus = true } = {}) {
   const notices = [];
+  const menus = [];
   const clock = { hour: 9, date: 'lunes, 1 de enero' };
   const timers = { intervals: [], timeouts: [] };
   const debouncers = [];
@@ -159,7 +161,36 @@ function loadMain({ deferDebounce = false, fuzzy = null, animationFrames = false
     addSlider(callback) { return this.addComponent('slider', callback); }
   }
 
+  // Menu: records its items (and submenus) and where it was shown; clicking is done by the test.
+  class Menu {
+    constructor() {
+      this.items = [];
+      menus.push(this);
+    }
+
+    addItem(callback) {
+      const item = {
+        title: '',
+        icon: '',
+        checked: false,
+        setTitle(title) { item.title = title; return item; },
+        setIcon(icon) { item.icon = icon; return item; },
+        setChecked(checked) { item.checked = Boolean(checked); return item; },
+        onClick(handler) { item.click = handler; return item; },
+      };
+      if (submenus) item.setSubmenu = () => { item.submenu = new Menu(); menus.pop(); return item.submenu; };
+      this.items.push(item);
+      callback(item);
+      return this;
+    }
+
+    addSeparator() { this.items.push({ separator: true }); return this; }
+    showAtMouseEvent(event) { this.shownAt = { event }; }
+    showAtPosition(position) { this.shownAt = { position }; }
+  }
+
   const obsidian = {
+    Menu,
     Plugin: class {},
     PluginSettingTab: class {
       constructor(app, plugin) {
@@ -266,7 +297,7 @@ function loadMain({ deferDebounce = false, fuzzy = null, animationFrames = false
   );
   const { HomeView, HomeSettingTab, FoyerPlugin, settingsModule } = context.module.exports;
   const flushDebounced = () => { for (const deferred of debouncers) deferred.run(); };
-  return { HomeView, HomeSettingTab, FoyerPlugin, settingsModule, TFile, TFolder, clock, notices, timers, frames, settingsLog, flushDebounced };
+  return { HomeView, HomeSettingTab, FoyerPlugin, settingsModule, TFile, TFolder, clock, notices, menus, timers, frames, settingsLog, flushDebounced };
 }
 
 module.exports = { createElement, loadMain, subsequenceFuzzy };

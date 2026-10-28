@@ -51,6 +51,13 @@ const STRINGS = {
     commandUnpinCurrent: 'Quitar nota actual de Foyer',
     pinToFoyer: 'Fijar en Foyer',
     unpinFromFoyer: 'Quitar de Foyer',
+    cardOpen: 'Abrir',
+    cardOpenNewTab: 'Abrir en una pestaña nueva',
+    cardColor: 'Color',
+    pinColors: {
+      none: 'Sin color', yellow: 'Amarillo', orange: 'Naranja', red: 'Rojo', purple: 'Morado',
+      blue: 'Azul', cyan: 'Cian', green: 'Verde', pink: 'Rosa',
+    },
     removeFromRecent: 'Quitar de Recientes',
     commandClearHistory: 'Borrar historial de Recientes',
     historyCleared: 'Historial de Recientes borrado.',
@@ -112,6 +119,13 @@ const STRINGS = {
     commandUnpinCurrent: 'Unpin current note from Foyer',
     pinToFoyer: 'Pin to Foyer',
     unpinFromFoyer: 'Unpin from Foyer',
+    cardOpen: 'Open',
+    cardOpenNewTab: 'Open in new tab',
+    cardColor: 'Color',
+    pinColors: {
+      none: 'No color', yellow: 'Yellow', orange: 'Orange', red: 'Red', purple: 'Purple',
+      blue: 'Blue', cyan: 'Cyan', green: 'Green', pink: 'Pink',
+    },
     removeFromRecent: 'Remove from Recent',
     commandClearHistory: 'Clear Recent history',
     historyCleared: 'Recent history cleared.',
@@ -472,6 +486,7 @@ const {
   TFile,
   Keymap,
   Notice,
+  Menu,
   Platform,
   prepareFuzzySearch,
   renderMatches,
@@ -858,6 +873,10 @@ class HomeView extends ItemView {
       e.stopPropagation();
       this.plugin.unpinFile(file.path);
     });
+    card.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      this.showCardMenu(e, file);
+    });
 
     card.createDiv({ cls: 'foyer__card-title', text: displayName(file) });
     const folder = folderOf(file);
@@ -893,6 +912,32 @@ class HomeView extends ItemView {
       this.removeRecentAt(this.recentItems.indexOf(item));
     });
     remove.addEventListener('auxclick', (e) => e.stopPropagation());
+  }
+
+  // Menú de una tarjeta (clic derecho): abrir, abrir en pestaña nueva, color y quitar de las fijadas.
+  // `at` es la posición ({ x, y }) cuando no hay un evento de ratón.
+  showCardMenu(event, file, at) {
+    const strings = STRINGS[this.plugin.getEffectiveLanguage()];
+    const entry = this.plugin.settings.pinned.find((item) => item.path === file.path);
+    const menu = new Menu();
+    menu.addItem((item) => item.setTitle(strings.cardOpen).setIcon('file-text').onClick(() => this.openFile(file)));
+    menu.addItem((item) => item.setTitle(strings.cardOpenNewTab).setIcon('file-plus').onClick(() => this.openFile(file, 'tab')));
+    menu.addSeparator();
+    menu.addItem((item) => {
+      item.setTitle(strings.cardColor).setIcon('palette');
+      // Sin submenús (Obsidian antiguo), los colores van directamente en el menú principal.
+      const target = typeof item.setSubmenu === 'function' ? item.setSubmenu() : menu;
+      for (const color of ['', ...PIN_COLORS]) {
+        target.addItem((colorItem) => colorItem
+          .setTitle(strings.pinColors[color || 'none'])
+          .setChecked((entry?.color || '') === color)
+          .onClick(() => this.plugin.setPinColor(file.path, color)));
+      }
+    });
+    menu.addSeparator();
+    menu.addItem((item) => item.setTitle(strings.unpinFromFoyer).setIcon('pin-off').onClick(() => this.plugin.unpinFile(file.path)));
+    if (event) menu.showAtMouseEvent(event);
+    else menu.showAtPosition(at);
   }
 
   // Quita del historial la fila `index` de la lista. Al repintar, la selección pasa a la fila que ocupa su lugar.

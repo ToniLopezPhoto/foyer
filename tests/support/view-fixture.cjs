@@ -16,6 +16,7 @@ async function createViewFixture({
   ignored = [],
   extra = {},
   recentLimit = 8,
+  language = 'en',
   main = loadMain({ animationFrames: true }),
 } = {}) {
   const files = new Map(paths.map((path) => [path, new main.TFile(path, 1)]));
@@ -25,6 +26,7 @@ async function createViewFixture({
   const notices = main.notices;
   const removed = [];
   const unpinned = [];
+  const colored = [];
   const plugin = {
     settings: {
       name: 'Toni',
@@ -34,9 +36,17 @@ async function createViewFixture({
     },
     openHistory: history,
     dismissedRecent: new Set(),
-    getEffectiveLanguage: () => 'en',
+    getEffectiveLanguage: () => language,
     getLastOpened: (path) => history[path] || null,
     // Same contract as the real plugin, which also refreshes every open Foyer view.
+    async setPinColor(path, color) {
+      colored.push([path, color]);
+      plugin.settings = {
+        ...plugin.settings,
+        pinned: plugin.settings.pinned.map((entry) => (entry.path === path ? { ...entry, color } : entry)),
+      };
+      view.refreshSettings();
+    },
     async unpinFile(path) {
       unpinned.push(path);
       plugin.settings = { ...plugin.settings, pinned: plugin.settings.pinned.filter((entry) => entry.path !== path) };
@@ -73,7 +83,7 @@ async function createViewFixture({
     },
   };
   await view.onOpen();
-  return { main, view, plugin, files, opened, hoverEvents, leafCalls, notices, removed, unpinned };
+  return { main, view, plugin, files, opened, hoverEvents, leafCalls, notices, removed, unpinned, colored };
 }
 
 // The listbox children in DOM order, looking through the (presentational) pinned board.
