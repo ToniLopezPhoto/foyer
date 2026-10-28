@@ -23,12 +23,22 @@ async function createViewFixture({
   const hoverEvents = [];
   const leafCalls = [];
   const notices = main.notices;
+  const removed = [];
   const plugin = {
     settings: { name: 'Toni', resultLimit: 7, recentLimit, pinned: [...pinned] },
     openHistory: history,
     dismissedRecent: new Set(),
     getEffectiveLanguage: () => 'en',
     getLastOpened: (path) => history[path] || null,
+    // Same contract as the real plugin, which also refreshes every open Foyer view.
+    removeFromHistory(path) {
+      removed.push(path);
+      plugin.dismissedRecent.add(path);
+      const had = path in history;
+      delete history[path];
+      view.refreshSettings();
+      return had;
+    },
   };
   const newLeaf = { openFile: async (file) => { opened.push(`new:${file.path}`); } };
   const view = new main.HomeView({ openFile: async (file) => { opened.push(file.path); } }, plugin);
@@ -52,7 +62,7 @@ async function createViewFixture({
     },
   };
   await view.onOpen();
-  return { main, view, plugin, files, opened, hoverEvents, leafCalls, notices };
+  return { main, view, plugin, files, opened, hoverEvents, leafCalls, notices, removed };
 }
 
 // Rows of the single Foyer listbox (Pinned + Recent) and its section headings, in DOM order.

@@ -3,70 +3,9 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const { loadMain } = require('./support/load-main.cjs');
+const { plain, createMenu, loadedPlugin } = require('./support/plugin-fixture.cjs');
 
-// Objects created inside the vm context have other prototypes: compare them as plain JSON.
-const plain = (value) => JSON.parse(JSON.stringify(value));
-
-// A menu that records the items added by a `file-menu` handler.
-function createMenu() {
-  const items = [];
-  return {
-    items,
-    addItem(callback) {
-      const item = {
-        title: '',
-        icon: '',
-        setTitle(title) { item.title = title; return item; },
-        setIcon(icon) { item.icon = icon; return item; },
-        onClick(handler) { item.click = handler; return item; },
-      };
-      items.push(item);
-      callback(item);
-      return this;
-    },
-  };
-}
-
-function createFixture({ data = null, local = null } = {}) {
-  const main = loadMain({ deferDebounce: true });
-  const activeFile = { current: null }; // a test can change the active note after onload()
-  const plugin = new main.FoyerPlugin();
-  const handlers = {};
-  const commands = {};
-  const saved = [];
-  const localWrites = [];
-
-  plugin.app = {
-    workspace: {
-      on(name, cb) { handlers[`workspace:${name}`] = cb; return {}; },
-      onLayoutReady() {},
-      getActiveFile: () => activeFile.current,
-      getLeavesOfType: () => [],
-    },
-    vault: {
-      on(name, cb) { handlers[`vault:${name}`] = cb; return {}; },
-    },
-    loadLocalStorage: () => (local === null ? null : plain(local)),
-    saveLocalStorage: (key, value) => { localWrites.push({ key, value: plain(value) }); },
-  };
-  plugin.loadData = async () => (data === null ? null : plain(data));
-  plugin.saveData = async (value) => { saved.push(plain(value)); };
-  plugin.registerEvent = (ref) => ref;
-  plugin.register = () => {};
-  plugin.registerView = () => {};
-  plugin.registerHoverLinkSource = () => {};
-  plugin.addSettingTab = () => {};
-  plugin.addRibbonIcon = () => {};
-  plugin.addCommand = (command) => { commands[command.id] = command; };
-  return { main, plugin, handlers, commands, saved, localWrites, activeFile };
-}
-
-async function loaded({ active = null, ...options } = {}) {
-  const fixture = createFixture(options);
-  if (active) fixture.activeFile.current = new fixture.main.TFile(active);
-  await fixture.plugin.onload();
-  return fixture;
-}
+const loaded = loadedPlugin;
 
 /* ── Settings ── */
 test('DEFAULT_SETTINGS starts with an empty pinned list', () => {

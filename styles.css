@@ -489,7 +489,7 @@
 
 .foyer__row {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr auto auto;
   align-items: center;
   gap: 0.75em;
   margin: 0 -0.75em;
@@ -535,6 +535,37 @@
   white-space: nowrap;
 }
 
+/* ✕ de «Recientes»: ocupa su columna siempre, pero solo se ve al pasar el ratón o al seleccionar la fila */
+.foyer__row-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6em;
+  height: 1.6em;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+.foyer__row-remove svg {
+  width: 0.8em;
+  height: 0.8em;
+}
+.foyer__row:hover .foyer__row-remove,
+.foyer__row.is-selected .foyer__row-remove,
+.foyer__row-remove:focus-visible {
+  opacity: 1;
+}
+.foyer__row-remove:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
 .foyer__empty {
   padding: 0.6em 0;
   font-size: 0.85em;
@@ -559,6 +590,9 @@
 .is-mobile .foyer__image {
   width: min(100%, 220px);
   max-height: 140px;
+}
+.is-mobile .foyer__row-remove {
+  opacity: 1;
 }
 .is-mobile .foyer__row-path,
 .is-mobile .foyer__help {

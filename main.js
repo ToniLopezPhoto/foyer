@@ -47,6 +47,12 @@ const STRINGS = {
     commandUnpinCurrent: 'Quitar nota actual de Foyer',
     pinToFoyer: 'Fijar en Foyer',
     unpinFromFoyer: 'Quitar de Foyer',
+    removeFromRecent: 'Quitar de Recientes',
+    commandClearHistory: 'Borrar historial de Recientes',
+    historyCleared: 'Historial de Recientes borrado.',
+    settingsClearHistory: 'Borrar historial de Recientes',
+    settingsClearHistoryDescription: 'Vacía la lista de notas abiertas recientemente en este dispositivo. Tus notas y las notas fijadas no se tocan.',
+    clearHistoryButton: 'Borrar',
     settingsName: 'Nombre del saludo',
     settingsNameDescription: 'Deja el campo vacío para mostrar el saludo sin nombre.',
     settingsLanguage: 'Idioma',
@@ -100,6 +106,12 @@ const STRINGS = {
     commandUnpinCurrent: 'Unpin current note from Foyer',
     pinToFoyer: 'Pin to Foyer',
     unpinFromFoyer: 'Unpin from Foyer',
+    removeFromRecent: 'Remove from Recent',
+    commandClearHistory: 'Clear Recent history',
+    historyCleared: 'Recent history cleared.',
+    settingsClearHistory: 'Clear Recent history',
+    settingsClearHistoryDescription: 'Empties the list of recently opened notes on this device. Your notes and pinned notes are not touched.',
+    clearHistoryButton: 'Clear',
     settingsName: 'Greeting name',
     settingsNameDescription: 'Leave this blank to show the greeting without a name.',
     settingsLanguage: 'Language',
@@ -719,9 +731,11 @@ class HomeView extends ItemView {
     const pinned = new Set(this.plugin.settings.pinned ?? []);
     const history = this.plugin.openHistory || {};
     const byRecency = Object.keys(history).sort((a, b) => history[b] - history[a]);
-    // El respaldo de Obsidian solo entra si el historial no tiene ningún archivo, aunque estén todos fijados.
+    // El respaldo de Obsidian solo entra si el historial no tiene ningún archivo, aunque estén todos fijados;
+    // no puede volver a mostrar lo que el usuario quitó o borró de Recientes.
     if (this.resolveRecent(byRecency, 1).length) return this.resolveRecent(byRecency, limit, pinned);
-    return this.resolveRecent(this.app.workspace.getLastOpenFiles(), limit, pinned);
+    const skip = new Set([...pinned, ...(this.plugin.dismissedRecent ?? [])]);
+    return this.resolveRecent(this.app.workspace.getLastOpenFiles(), limit, skip);
   }
 
   renderRecent() {
@@ -738,7 +752,7 @@ class HomeView extends ItemView {
 
     if (pinned.length) this.renderSection(strings.pinned, pinned);
     // Con notas fijadas y nada más en el historial, «Recientes» no se muestra (ni dice que no hay nada).
-    if (recent.length || !pinned.length) this.renderSection(strings.recent, recent);
+    if (recent.length || !pinned.length) this.renderSection(strings.recent, recent, true);
     if (!recent.length && !pinned.length) {
       this.recentEl.createDiv({ cls: 'foyer__empty', text: strings.emptyRecent });
     }
@@ -747,15 +761,17 @@ class HomeView extends ItemView {
   }
 
   // Encabezado (decorativo: las opciones del listbox siguen siendo solo las filas) y sus filas.
-  renderSection(label, files) {
+  // Las filas `removable` (Recientes) se pueden quitar del historial.
+  renderSection(label, files, removable = false) {
     const head = this.recentEl.createDiv({ cls: 'foyer__section-head', attr: { role: 'presentation' } });
     head.createSpan({ cls: 'foyer__label', text: label });
-    for (const file of files) this.renderRow(file);
+    for (const file of files) this.renderRow(file, removable);
   }
 
-  renderRow(file) {
+  renderRow(file, removable) {
     const row = this.recentEl.createDiv({ cls: 'foyer__row', attr: { title: file.path } });
     this.addItem(this.recentItems, row, (mode) => this.openFile(file, mode), file);
+    const item = this.recentItems[this.recentItems.length - 1];
     setIcon(row.createSpan('foyer__row-icon'), iconFor(file));
 
     const main = row.createDiv('foyer__row-main');
@@ -766,6 +782,30 @@ class HomeView extends ItemView {
     // Hora real de la última apertura (no la de modificación del archivo).
     const timeEl = row.createSpan({ cls: 'foyer__row-time' });
     this.recentTimeEls.push({ el: timeEl, path: file.path });
+
+    if (!removable) return;
+    // Solo quita la entrada del historial; el archivo no se toca. Los clics no deben llegar a la fila (la abriría).
+    item.removePath = file.path;
+    const label = STRINGS[this.plugin.getEffectiveLanguage()].removeFromRecent;
+    const remove = row.createEl('button', {
+      cls: 'foyer__row-remove',
+      attr: { type: 'button', tabindex: '-1', 'aria-label': label, title: label },
+    });
+    setIcon(remove, 'x');
+    remove.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.removeRecentAt(this.recentItems.indexOf(item));
+    });
+    remove.addEventListener('auxclick', (e) => e.stopPropagation());
+  }
+
+  // Quita del historial la fila `index` de la lista. Al repintar, la selección pasa a la fila que ocupa su lugar.
+  removeRecentAt(index) {
+    const path = this.recentItems[index]?.removePath;
+    if (!path) return;
+    const keep = this.selected;
+    this.plugin.removeFromHistory(path);
+    if (keep >= 0 && this.recentItems.length) this.select(Math.min(keep, this.recentItems.length - 1));
   }
 
   updateRecentTimes() {
@@ -1040,6 +1080,12 @@ class HomeView extends ItemView {
         if (item) item.run(Keymap.isModEvent(e));
         break;
       }
+      case 'Delete':
+        // Con la búsqueda vacía, Supr quita de Recientes la fila seleccionada (las fijadas no se quitan así).
+        if (this.inputEl.value || !this.recentItems[this.selected]?.removePath) break;
+        e.preventDefault();
+        this.removeRecentAt(this.selected);
+        break;
       case 'Escape':
         if (this.inputEl.value) {
           e.preventDefault();
@@ -1202,6 +1248,13 @@ class HomeSettingTab extends PluginSettingTab {
         .setDynamicTooltip()
         .onChange((value) => saveResultLimit(value)));
 
+    new Setting(containerEl)
+      .setName(strings.settingsClearHistory)
+      .setDesc(strings.settingsClearHistoryDescription)
+      .addButton((button) => button
+        .setButtonText(strings.clearHistoryButton)
+        .onClick(() => this.plugin.clearHistory()));
+
     const applyImage = async (file) => {
       await this.plugin.updateSetting('heroImagePath', file.path);
       new Notice(STRINGS[this.plugin.getEffectiveLanguage()].imageSelected);
@@ -1318,10 +1371,14 @@ module.exports = class FoyerPlugin extends Plugin {
     this.saveHistorySoon = debounce(() => saveOpenHistory(this.app, this.openHistory), 2000, true);
     this.register(() => this.saveHistorySoon.run?.());
 
+    // Notas que el usuario quitó de «Recientes» y que el respaldo de Obsidian no debe volver a mostrar (solo en memoria).
+    this.dismissedRecent = new Set();
+
     // Historial de aperturas: se registra antes que la vista para que ya esté al día al renderizar.
     const ws = this.app.workspace;
     this.registerEvent(ws.on('file-open', (file) => {
       if (!(file instanceof TFile)) return;
+      this.dismissedRecent.delete(file.path);
       recordOpen(this.openHistory, file.path, Date.now());
       this.saveHistorySoon();
     }));
@@ -1357,6 +1414,7 @@ module.exports = class FoyerPlugin extends Plugin {
     const strings = STRINGS[this.getEffectiveLanguage()];
     pinCommand('pin-current', strings.commandPinCurrent, (pinned) => !pinned, (path) => this.pinFile(path));
     pinCommand('unpin-current', strings.commandUnpinCurrent, (pinned) => pinned, (path) => this.unpinFile(path));
+    this.addCommand({ id: 'clear-history', name: strings.commandClearHistory, callback: () => this.clearHistory() });
     // Menú contextual de archivos: una sola entrada, para fijar o para quitar.
     this.registerEvent(ws.on('file-menu', (menu, file) => {
       if (!isListed(file)) return;
@@ -1389,6 +1447,30 @@ module.exports = class FoyerPlugin extends Plugin {
 
   getEffectiveLanguage() {
     return resolveLanguage(this.settings.language, getLanguage());
+  }
+
+  // Vuelve a pintar cada vista de Foyer abierta, conservando su búsqueda.
+  refreshViews() {
+    for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE)) leaf.view?.refreshSettings?.();
+  }
+
+  // Quita una nota de «Recientes» (solo la entrada del historial de este dispositivo, nunca el archivo).
+  removeFromHistory(path) {
+    const had = path in this.openHistory;
+    delete this.openHistory[path];
+    this.dismissedRecent.add(path);
+    if (had) this.saveHistorySoon();
+    this.refreshViews();
+    return had;
+  }
+
+  // Vacía «Recientes» en este dispositivo. Las notas fijadas y los archivos no se tocan.
+  clearHistory() {
+    for (const path of this.app.workspace.getLastOpenFiles?.() ?? []) this.dismissedRecent.add(path);
+    for (const path of Object.keys(this.openHistory)) delete this.openHistory[path];
+    saveOpenHistory(this.app, this.openHistory);
+    new Notice(STRINGS[this.getEffectiveLanguage()].historyCleared);
+    this.refreshViews();
   }
 
   isPinned(path) {

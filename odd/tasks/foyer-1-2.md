@@ -72,11 +72,11 @@ Route note: the writer trigger (2+ non-trivial files) would fire for T3; I kept 
 - Acceptance: existing recents-keyboard and settings tests stay green without behavior edits.
 
 ### T3 — Recents management
-- [ ] RED: hover ✕ button on a Recent row (accessible label) removes only its history entry and re-renders; the file is untouched.
-- [ ] RED: `Delete` on the selected Recent row removes it and keeps a sensible selection; no-op on pinned rows and while searching.
-- [ ] RED: fallback rows from `getLastOpenFiles` do not come back after removal / clear.
-- [ ] RED: "Clear Recent history" command empties the history, persists locally, shows a `Notice`; settings button does the same.
-- [ ] GREEN: plugin `removeFromHistory` / `clearHistory`; view button and key; command; settings button; strings; CSS.
+- [x] RED: hover ✕ button on a Recent row (accessible label) removes only its history entry and re-renders; the file is untouched.
+- [x] RED: `Delete` on the selected Recent row removes it and keeps a sensible selection; no-op on pinned rows and while searching.
+- [x] RED: fallback rows from `getLastOpenFiles` do not come back after removal / clear.
+- [x] RED: "Clear Recent history" command empties the history, persists locally, shows a `Notice`; settings button does the same.
+- [x] GREEN: plugin `removeFromHistory` / `clearHistory`; view button and key; command; settings button; strings; CSS.
 - Acceptance: no code path calls `vault.delete`, `trash` or similar.
 
 ### T4 — Focus and new-tab commands
@@ -94,3 +94,4 @@ Route note: the writer trigger (2+ non-trivial files) would fire for T3; I kept 
 - Plan written before any code. Branch starts from `af603dc`.
 - T1 done. RED: new `tests/pinned.test.cjs` (22 tests) against the old `main.js`: 4 pass (vacuous) / 18 fail (full suite 139 pass / 18 fail). GREEN: full suite 157 pass / 0 fail; `node --check main.js` ok; `git diff --check` clean. Refactor: `renameInPinned` rewritten as a plain loop. Note: the vault `rename`/`delete` handlers now also persist `pinned` through `updateSetting` (they became async).
 - T2 done. RED: new `tests/pinned-view.test.cjs` (18 tests) + `tests/support/view-fixture.cjs` against the old view: 1 pass / 17 fail (full suite 158 pass / 17 fail). GREEN after `renderRecent` / `renderSection` / `renderRow`: 16 older recents tests failed only because `recentRows` took every child of the listbox; the helper in `tests/recents-keyboard.test.cjs` now keeps `role="option"` children (headings moved inside the listbox) with no assertion changed. Full suite 175 pass / 0 fail; `node --check main.js` ok; `git diff --check` clean. Decision implemented: the Obsidian fallback only kicks in when the history resolves to no file at all, even if all of it is pinned.
+- T3 done. RED: new `tests/recents-management.test.cjs` (15 tests, plus `tests/support/plugin-fixture.cjs` extracted from the pinned tests) against the old code: 1 pass / 14 fail (full suite 176 pass / 14 fail). GREEN: full suite 190 pass / 0 fail; `node --check main.js` ok; `git diff --check` clean. Decision refined while implementing: rows that come from the Obsidian fallback also get the ✕ (it works through the in-memory `dismissedRecent` set, so they do not come back); `Delete` and ✕ keep the selection on the row that takes the removed row place. No code path calls vault delete or trash.
