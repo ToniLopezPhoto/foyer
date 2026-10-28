@@ -1,0 +1,46 @@
+name: Offer a translation
+description: Help translate Foyer into another language.
+title: "[Translation]: "
+labels: ["translation", "good first issue"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Foyer currently ships in English and Spanish. Translations are opening to the community in a future release. Tell us which language you can help with. You do not need to be a developer; a pull request is welcome but optional.
+
+  - type: input
+    id: language-name
+    attributes:
+      label: Language name
+      description: The name of the language in English, for example "French" or "Japanese".
+      placeholder: "French"
+    validations:
+      required: true
+
+  - type: input
+    id: language-code
+    attributes:
+      label: Language code
+      description: The locale code Foyer should use, for example "fr" or "ja".
+      placeholder: "fr"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: can-open-pr
+    attributes:
+      label: Can you open a pull request?
+      description: Choose "No" if you would rather send the strings another way. A maintainer can then help you.
+      options:
+        - "Yes"
+        - "No"
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else?
+      description: Optional. Notes about your experience with the language, or how you would like to help.
+    validations:
+      required: false
