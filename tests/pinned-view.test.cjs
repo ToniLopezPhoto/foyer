@@ -45,7 +45,7 @@ test('pinned notes that are missing, folders, hidden or excluded are skipped', a
     pinned: ['Gone.md', 'Folder', 'Excluded.md', 'Hidden/.secret.md', 'A.md'],
   });
   assert.deepEqual(sections(fixture.view)[0], { head: 'Pinned', rows: ['A'] });
-  assert.deepEqual(fixture.plugin.settings.pinned.length, 5); // rendering never prunes the setting
+  assert.equal(fixture.plugin.settings.pinned.length, 5); // rendering never prunes the setting
 });
 
 test('a pinned note is not repeated in Recent and the Recent limit still applies to Recent', async () => {
@@ -104,7 +104,7 @@ test('pinned notes with an empty Recent show only the Pinned section', async () 
 test('refreshSettings picks up a changed pinned list', async () => {
   const fixture = await createViewFixture({ paths: ['A.md', 'B.md'], history: { 'A.md': 2, 'B.md': 1 } });
   assert.equal(sectionHeads(fixture.view).length, 1);
-  fixture.plugin.settings = { ...fixture.plugin.settings, pinned: ['B.md'] };
+  fixture.plugin.settings = { ...fixture.plugin.settings, pinned: [{ path: 'B.md', color: '' }] };
   fixture.view.refreshSettings();
   assert.deepEqual(sections(fixture.view), [
     { head: 'Pinned', rows: ['B'] },

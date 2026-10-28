@@ -149,7 +149,7 @@ test('clearHistory empties the history, saves it at once, shows a Notice and ref
 test('clearing never touches pinned notes', async () => {
   const f = await loadedPlugin({ data: { pinned: ['a.md'] }, local: { 'a.md': 1 } });
   f.plugin.clearHistory();
-  assert.deepEqual(plain(f.plugin.settings.pinned), ['a.md']);
+  assert.deepEqual(plain(f.plugin.settings.pinned), [{ path: 'a.md', color: '' }]);
 });
 
 test('the Notice is Spanish when the interface is Spanish', async () => {

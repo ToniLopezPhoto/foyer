@@ -4,7 +4,7 @@ const { loadMain } = require('./load-main.cjs');
 
 // Builds a HomeView over a fake vault and a fake plugin.
 //   history  — path -> last-opened timestamp (per-device open history)
-//   pinned   — pinned paths, in pinning order (data.json)
+//   pinned   — pinned notes in order (data.json): paths, or { path, color } entries
 //   lastOpen — what Obsidian's getLastOpenFiles() returns
 //   ignored  — paths hidden by "Excluded files"; extra — non-file vault entries (folders...)
 // The fake plugin implements the same history/pin API as the real one so the view can call it.
@@ -25,7 +25,12 @@ async function createViewFixture({
   const notices = main.notices;
   const removed = [];
   const plugin = {
-    settings: { name: 'Toni', resultLimit: 7, recentLimit, pinned: [...pinned] },
+    settings: {
+      name: 'Toni',
+      resultLimit: 7,
+      recentLimit,
+      pinned: pinned.map((entry) => (typeof entry === 'string' ? { path: entry, color: '' } : entry)),
+    },
     openHistory: history,
     dismissedRecent: new Set(),
     getEffectiveLanguage: () => 'en',

@@ -7,6 +7,10 @@ const { plain, createMenu, loadedPlugin } = require('./support/plugin-fixture.cj
 
 const loaded = loadedPlugin;
 
+// Pinned entries are { path, color }; most tests only care about the order of the paths.
+const pathsOf = (pinned) => plain(pinned).map((entry) => entry.path);
+const pinnedPaths = (f) => pathsOf(f.plugin.settings.pinned);
+
 /* ── Settings ── */
 test('DEFAULT_SETTINGS starts with an empty pinned list', () => {
   const { settingsModule } = loadMain();
@@ -15,13 +19,14 @@ test('DEFAULT_SETTINGS starts with an empty pinned list', () => {
 
 test('normalizeSettings keeps a clean pinned list', () => {
   const { settingsModule } = loadMain();
-  assert.deepEqual(plain(settingsModule.normalizeSettings({ pinned: ['a.md', 'dir/b.md'] }).pinned), ['a.md', 'dir/b.md']);
+  const pinned = settingsModule.normalizeSettings({ pinned: ['a.md', 'dir/b.md'] }).pinned;
+  assert.deepEqual(plain(pinned), [{ path: 'a.md', color: '' }, { path: 'dir/b.md', color: '' }]);
 });
 
 test('normalizeSettings drops non-strings, empty strings and duplicates from pinned', () => {
   const { settingsModule } = loadMain();
   const pinned = settingsModule.normalizeSettings({ pinned: ['a.md', 3, '', null, 'a.md', { x: 1 }, 'b.md'] }).pinned;
-  assert.deepEqual(plain(pinned), ['a.md', 'b.md']);
+  assert.deepEqual(pathsOf(pinned), ['a.md', 'b.md']);
 });
 
 test('normalizeSettings turns an invalid pinned value into an empty list', () => {
@@ -36,7 +41,7 @@ test('normalizeSettings does not share the pinned array with its input', () => {
   const { settingsModule } = loadMain();
   const input = ['a.md'];
   const out = settingsModule.normalizeSettings({ pinned: input });
-  out.pinned.push('b.md');
+  out.pinned.push({ path: 'b.md', color: '' });
   assert.deepEqual(plain(input), ['a.md']);
 });
 
@@ -44,11 +49,11 @@ test('normalizeSettings does not share the pinned array with its input', () => {
 test('pinFile stores the path in data.json and leaves the open history alone', async () => {
   const f = await loaded();
   await f.plugin.pinFile('a.md');
-  assert.deepEqual(plain(f.plugin.settings.pinned), ['a.md']);
+  assert.deepEqual(pinnedPaths(f), ['a.md']);
   assert.equal(f.plugin.isPinned('a.md'), true);
   assert.equal(f.plugin.isPinned('b.md'), false);
   assert.equal(f.saved.length, 1);
-  assert.deepEqual(f.saved[0].pinned, ['a.md']);
+  assert.deepEqual(pathsOf(f.saved[0].pinned), ['a.md']);
   assert.equal('openHistory' in f.saved[0], false);
   f.plugin.saveHistorySoon.run();
   assert.equal(f.localWrites.length, 0);
@@ -59,14 +64,14 @@ test('pinFile keeps the pinning order and ignores a note that is already pinned'
   await f.plugin.pinFile('a.md');
   await f.plugin.pinFile('b.md');
   await f.plugin.pinFile('a.md');
-  assert.deepEqual(plain(f.plugin.settings.pinned), ['a.md', 'b.md']);
+  assert.deepEqual(pinnedPaths(f), ['a.md', 'b.md']);
   assert.equal(f.saved.length, 2);
 });
 
 test('unpinFile removes the path and saves; unpinning an unknown path does nothing', async () => {
   const f = await loaded({ data: { pinned: ['a.md', 'b.md'] } });
   await f.plugin.unpinFile('a.md');
-  assert.deepEqual(plain(f.plugin.settings.pinned), ['b.md']);
+  assert.deepEqual(pinnedPaths(f), ['b.md']);
   assert.equal(f.saved.length, 1);
   await f.plugin.unpinFile('zzz.md');
   assert.equal(f.saved.length, 1);
@@ -74,7 +79,7 @@ test('unpinFile removes the path and saves; unpinning an unknown path does nothi
 
 test('pinned notes load from data.json on startup', async () => {
   const f = await loaded({ data: { pinned: ['a.md', 7, 'a.md'] } });
-  assert.deepEqual(plain(f.plugin.settings.pinned), ['a.md']);
+  assert.deepEqual(pinnedPaths(f), ['a.md']);
   assert.equal(f.saved.length, 0);
 });
 
@@ -83,9 +88,9 @@ test('renaming a pinned file or a folder moves the pinned paths', async () => {
   const f = await loaded({ data: { pinned: ['a.md', 'dir/b.md', 'dir/sub/c.md', 'other.md'] } });
   await f.handlers['vault:rename']({ path: 'z.md' }, 'a.md');
   await f.handlers['vault:rename']({ path: 'renamed' }, 'dir');
-  assert.deepEqual(plain(f.plugin.settings.pinned), ['z.md', 'renamed/b.md', 'renamed/sub/c.md', 'other.md']);
+  assert.deepEqual(pinnedPaths(f), ['z.md', 'renamed/b.md', 'renamed/sub/c.md', 'other.md']);
   assert.equal(f.saved.length, 2);
-  assert.deepEqual(f.saved.pop().pinned, ['z.md', 'renamed/b.md', 'renamed/sub/c.md', 'other.md']);
+  assert.deepEqual(pathsOf(f.saved.pop().pinned), ['z.md', 'renamed/b.md', 'renamed/sub/c.md', 'other.md']);
 });
 
 test('a rename that touches no pinned path does not write data.json', async () => {
@@ -97,14 +102,14 @@ test('a rename that touches no pinned path does not write data.json', async () =
 test('renaming a note onto an already pinned path does not duplicate it', async () => {
   const f = await loaded({ data: { pinned: ['a.md', 'b.md'] } });
   await f.handlers['vault:rename']({ path: 'b.md' }, 'a.md');
-  assert.deepEqual(plain(f.plugin.settings.pinned), ['b.md']);
+  assert.deepEqual(pinnedPaths(f), ['b.md']);
 });
 
 test('deleting a pinned file or a folder drops the pinned paths', async () => {
   const f = await loaded({ data: { pinned: ['a.md', 'dir/b.md', 'dir/sub/c.md', 'other.md'] } });
   await f.handlers['vault:delete']({ path: 'a.md' });
   await f.handlers['vault:delete']({ path: 'dir' });
-  assert.deepEqual(plain(f.plugin.settings.pinned), ['other.md']);
+  assert.deepEqual(pinnedPaths(f), ['other.md']);
   assert.equal(f.saved.length, 2);
 });
 
@@ -147,13 +152,13 @@ test('running pin-current pins the active note; then only unpin-current applies'
   const f = await loaded({ active: 'dir/a.md' });
   assert.equal(f.commands['pin-current'].checkCallback(false), true);
   await new Promise((resolve) => setImmediate(resolve));
-  assert.deepEqual(plain(f.plugin.settings.pinned), ['dir/a.md']);
+  assert.deepEqual(pinnedPaths(f), ['dir/a.md']);
   assert.equal(f.commands['pin-current'].checkCallback(true), false);
   assert.equal(f.commands['unpin-current'].checkCallback(true), true);
 
   assert.equal(f.commands['unpin-current'].checkCallback(false), true);
   await new Promise((resolve) => setImmediate(resolve));
-  assert.deepEqual(plain(f.plugin.settings.pinned), []);
+  assert.deepEqual(pinnedPaths(f), []);
 });
 
 /* ── File menu ── */
@@ -165,7 +170,7 @@ test('the file menu offers "Pin to Foyer" for a listed unpinned file', async () 
   assert.equal(m.items[0].title, 'Pin to Foyer');
   assert.equal(m.items[0].icon, 'pin');
   await m.items[0].click();
-  assert.deepEqual(plain(f.plugin.settings.pinned), ['dir/a.md']);
+  assert.deepEqual(pinnedPaths(f), ['dir/a.md']);
 });
 
 test('the file menu offers "Unpin from Foyer" for a pinned file', async () => {
@@ -176,7 +181,7 @@ test('the file menu offers "Unpin from Foyer" for a pinned file', async () => {
   assert.equal(m.items[0].title, 'Unpin from Foyer');
   assert.equal(m.items[0].icon, 'pin-off');
   await m.items[0].click();
-  assert.deepEqual(plain(f.plugin.settings.pinned), []);
+  assert.deepEqual(pinnedPaths(f), []);
 });
 
 test('the file menu adds nothing for folders and hidden files', async () => {
@@ -196,4 +201,124 @@ test('menu strings exist in Spanish too', () => {
     assert.equal(typeof en[key], 'string', `en.${key}`);
     assert.notEqual(es[key], en[key], key);
   }
+});
+
+/* ── Sticky-note board: entries with a color, stored order ── */
+test('the palette has the eight theme colors, in a fixed order', () => {
+  const { settingsModule } = loadMain();
+  assert.deepEqual(plain(settingsModule.PIN_COLORS), ['yellow', 'orange', 'red', 'purple', 'blue', 'cyan', 'green', 'pink']);
+});
+
+test('normalizeSettings accepts pinned entries with a color', () => {
+  const { settingsModule } = loadMain();
+  const pinned = settingsModule.normalizeSettings({ pinned: [{ path: 'a.md', color: 'blue' }, { path: 'b.md', color: '' }] }).pinned;
+  assert.deepEqual(plain(pinned), [{ path: 'a.md', color: 'blue' }, { path: 'b.md', color: '' }]);
+});
+
+test('normalizeSettings accepts the old string list next to the new entries', () => {
+  const { settingsModule } = loadMain();
+  const pinned = settingsModule.normalizeSettings({ pinned: ['a.md', { path: 'b.md', color: 'pink' }, 'c.md'] }).pinned;
+  assert.deepEqual(plain(pinned), [
+    { path: 'a.md', color: '' },
+    { path: 'b.md', color: 'pink' },
+    { path: 'c.md', color: '' },
+  ]);
+});
+
+test('normalizeSettings drops invalid entries, repeated paths and unknown colors', () => {
+  const { settingsModule } = loadMain();
+  const pinned = settingsModule.normalizeSettings({
+    pinned: [
+      null, 3, [], '', { color: 'red' }, { path: '' }, { path: 5 },
+      { path: 'a.md', color: 'chartreuse' },
+      { path: 'a.md', color: 'red' },
+      { path: 'b.md', color: 7 },
+      { path: 'c.md', color: 'green', extra: true },
+    ],
+  }).pinned;
+  assert.deepEqual(plain(pinned), [
+    { path: 'a.md', color: '' },
+    { path: 'b.md', color: '' },
+    { path: 'c.md', color: 'green' },
+  ]);
+});
+
+test('pinFile writes an entry without color', async () => {
+  const f = await loaded();
+  await f.plugin.pinFile('a.md');
+  assert.deepEqual(plain(f.saved.at(-1).pinned), [{ path: 'a.md', color: '' }]);
+});
+
+test('setPinColor stores the color with the pin and keeps the order', async () => {
+  const f = await loaded({ data: { pinned: ['a.md', 'b.md'] } });
+  await f.plugin.setPinColor('b.md', 'purple');
+  assert.deepEqual(plain(f.plugin.settings.pinned), [{ path: 'a.md', color: '' }, { path: 'b.md', color: 'purple' }]);
+  assert.equal(f.saved.length, 1);
+  await f.plugin.setPinColor('b.md', '');
+  assert.equal(f.plugin.settings.pinned[1].color, '');
+  assert.equal(f.saved.length, 2);
+});
+
+test('setPinColor ignores unknown colors, unpinned notes and unchanged colors', async () => {
+  const f = await loaded({ data: { pinned: [{ path: 'a.md', color: 'red' }] } });
+  await f.plugin.setPinColor('a.md', 'chartreuse');
+  await f.plugin.setPinColor('zzz.md', 'blue');
+  await f.plugin.setPinColor('a.md', 'red');
+  assert.equal(f.saved.length, 0);
+  assert.equal(f.plugin.settings.pinned[0].color, 'red');
+});
+
+test('renaming keeps the color of a pinned note', async () => {
+  const f = await loaded({ data: { pinned: [{ path: 'dir/a.md', color: 'cyan' }] } });
+  await f.handlers['vault:rename']({ path: 'new/a.md' }, 'dir/a.md');
+  assert.deepEqual(plain(f.plugin.settings.pinned), [{ path: 'new/a.md', color: 'cyan' }]);
+});
+
+test('reorderPinned (pure) moves the listed notes and keeps the others in their slots', () => {
+  const { settingsModule } = loadMain();
+  const entries = ['a', 'b', 'c', 'd'].map((path) => ({ path, color: '' }));
+  const order = (list) => list.map((entry) => entry.path);
+  assert.deepEqual(order(settingsModule.reorderPinned(entries, ['d', 'c', 'b', 'a'])), ['d', 'c', 'b', 'a']);
+  // 'b' is hidden (not listed): it stays in slot 1 while the visible cards swap.
+  assert.deepEqual(order(settingsModule.reorderPinned(entries, ['d', 'c', 'a'])), ['d', 'b', 'c', 'a']);
+  // unknown and repeated paths are ignored
+  assert.deepEqual(order(settingsModule.reorderPinned(entries, ['c', 'zzz', 'a', 'c'])), ['c', 'b', 'a', 'd']);
+  // nothing changes: null
+  assert.equal(settingsModule.reorderPinned(entries, ['a', 'b', 'c', 'd']), null);
+  assert.equal(settingsModule.reorderPinned(entries, []), null);
+});
+
+test('reorderPinned (pure) keeps each entry with its color', () => {
+  const { settingsModule } = loadMain();
+  const entries = [{ path: 'a', color: 'red' }, { path: 'b', color: 'blue' }];
+  assert.deepEqual(plain(settingsModule.reorderPinned(entries, ['b', 'a'])), [
+    { path: 'b', color: 'blue' },
+    { path: 'a', color: 'red' },
+  ]);
+});
+
+test('plugin.reorderPinned persists the new order once and does nothing when it is unchanged', async () => {
+  const f = await loaded({ data: { pinned: ['a.md', 'b.md', 'c.md'] } });
+  await f.plugin.reorderPinned(['c.md', 'a.md', 'b.md']);
+  assert.deepEqual(pinnedPaths(f), ['c.md', 'a.md', 'b.md']);
+  assert.equal(f.saved.length, 1);
+  assert.deepEqual(pathsOf(f.saved[0].pinned), ['c.md', 'a.md', 'b.md']);
+  await f.plugin.reorderPinned(['c.md', 'a.md', 'b.md']);
+  assert.equal(f.saved.length, 1);
+});
+
+test('cardTilt is stable per path, between 1 and 2 degrees, and varies across paths', () => {
+  const { settingsModule } = loadMain();
+  const { cardTilt } = settingsModule;
+  const values = [];
+  for (let i = 0; i < 200; i++) {
+    const path = `Projects/Note ${i}.md`;
+    const tilt = cardTilt(path);
+    assert.equal(cardTilt(path), tilt);
+    assert.ok(Math.abs(tilt) >= 1 && Math.abs(tilt) <= 2, `${path}: ${tilt}`);
+    values.push(tilt);
+  }
+  assert.ok(values.some((v) => v < 0) && values.some((v) => v > 0), 'both directions');
+  assert.ok(new Set(values).size > 20, 'varied');
+  assert.equal(cardTilt(''), cardTilt(''));
 });

@@ -26,6 +26,8 @@ const LIMIT_MAX = 20;
 
 const HERO_IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'bmp']);
 const OPEN_HISTORY_LIMIT = 200;
+// Colores de las notas fijadas: los de la paleta del tema (--color-<nombre>); «sin color» es la cadena vacía.
+const PIN_COLORS = Object.freeze(['yellow', 'orange', 'red', 'purple', 'blue', 'cyan', 'green', 'pink']);
 const OPEN_HISTORY_KEY = 'foyer-open-history';
 
 const STRINGS = {
@@ -168,10 +170,20 @@ function normalizeLimit(value, fallback) {
   return Math.min(LIMIT_MAX, Math.max(LIMIT_MIN, Math.round(value)));
 }
 
-// Lista de rutas sin repetir: solo cuentan los textos no vacíos; cualquier otro valor da una lista vacía.
+// Notas fijadas como [{ path, color }]. Acepta también la lista de rutas de las primeras versiones de 1.2.
+// Se descartan las entradas sin ruta válida y las rutas repetidas (gana la primera); un color desconocido es «sin color».
 function normalizePinned(value) {
   if (!Array.isArray(value)) return [];
-  return [...new Set(value.filter((path) => typeof path === 'string' && path))];
+  const seen = new Set();
+  const out = [];
+  for (const entry of value) {
+    const object = entry && typeof entry === 'object' && !Array.isArray(entry);
+    const path = typeof entry === 'string' ? entry : object ? entry.path : null;
+    if (typeof path !== 'string' || !path || seen.has(path)) continue;
+    seen.add(path);
+    out.push({ path, color: object && PIN_COLORS.includes(entry.color) ? entry.color : '' });
+  }
+  return out;
 }
 
 function normalizeToggle(value, fallback) {
@@ -273,21 +285,51 @@ function deleteFromHistory(history, removedPath) {
 // Rutas fijadas tras renombrar un archivo o una carpeta; devuelve la lista nueva o null si nada cambia.
 function renameInPinned(pinned, oldPath, newPath) {
   let changed = false;
-  const next = pinned.map((path) => {
+  const next = pinned.map((entry) => {
     let moved = null;
-    if (path === oldPath) moved = newPath;
-    else if (path.startsWith(`${oldPath}/`)) moved = newPath + path.slice(oldPath.length);
-    if (moved === null) return path;
+    if (entry.path === oldPath) moved = newPath;
+    else if (entry.path.startsWith(`${oldPath}/`)) moved = newPath + entry.path.slice(oldPath.length);
+    if (moved === null) return entry;
     changed = true;
-    return moved;
+    return { ...entry, path: moved };
   });
   return changed ? normalizePinned(next) : null;
 }
 
 // Rutas fijadas tras borrar un archivo o una carpeta; devuelve la lista nueva o null si nada cambia.
 function deleteFromPinned(pinned, removedPath) {
-  const next = pinned.filter((path) => path !== removedPath && !path.startsWith(`${removedPath}/`));
+  const next = pinned.filter((entry) => entry.path !== removedPath && !entry.path.startsWith(`${removedPath}/`));
   return next.length === pinned.length ? null : next;
+}
+
+// Nuevo orden de las fijadas. `order` son las rutas que se ven, en su orden nuevo: ocupan los mismos huecos
+// que tenían y las demás entradas (todavía sin sincronizar, excluidas...) no se mueven. null si nada cambia.
+function reorderPinned(pinned, order) {
+  const byPath = new Map(pinned.map((entry) => [entry.path, entry]));
+  const wanted = [...new Set(order)].filter((path) => byPath.has(path));
+  if (wanted.length < 2) return null;
+  const slots = new Set(wanted);
+  let next = 0;
+  let changed = false;
+  const result = pinned.map((entry) => {
+    if (!slots.has(entry.path)) return entry;
+    const moved = byPath.get(wanted[next++]);
+    if (moved !== entry) changed = true;
+    return moved;
+  });
+  return changed ? result : null;
+}
+
+// Inclinación fija de una tarjeta, de 1 a 2 grados hacia un lado u otro, según un hash (FNV-1a) de la ruta:
+// la misma nota se inclina igual en cada pintado y en cada dispositivo.
+function cardTilt(path) {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < path.length; i++) {
+    hash ^= path.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  const degrees = 1 + ((hash >>> 8) % 101) / 100;
+  return hash & 1 ? degrees : -degrees;
 }
 
 function isSafeHeroFileName(name) {
@@ -393,6 +435,7 @@ module.exports = {
   DEFAULT_SETTINGS,
   LIMIT_MIN,
   LIMIT_MAX,
+  PIN_COLORS,
   STRINGS,
   normalizeSettings,
   loadSettings,
@@ -413,6 +456,8 @@ module.exports = {
   deleteFromHistory,
   renameInPinned,
   deleteFromPinned,
+  reorderPinned,
+  cardTilt,
   isSafeHeroFileName,
   sanitizeFileName,
 };
@@ -456,6 +501,9 @@ const {
   deleteFromHistory,
   renameInPinned,
   deleteFromPinned,
+  reorderPinned,
+  cardTilt,
+  PIN_COLORS,
   isSafeHeroFileName,
   sanitizeFileName,
 } = homeSettingsModule.exports;
@@ -725,14 +773,14 @@ class HomeView extends ItemView {
   // Notas fijadas, en el orden en que se fijaron. Las que no existen, no se listan o están excluidas
   // no se muestran, pero tampoco se quitan del ajuste: puede que otro dispositivo aún no las haya sincronizado.
   getPinnedFiles() {
-    return this.resolveRecent(this.plugin.settings.pinned ?? [], Infinity);
+    return this.resolveRecent((this.plugin.settings.pinned ?? []).map((entry) => entry.path), Infinity);
   }
 
   // Historial propio del plugin, del más reciente al más antiguo, sin las notas fijadas (el límite se
   // aplica a lo que queda); si el historial no da ningún archivo, la lista corta de Obsidian (getLastOpenFiles).
   getRecentFiles() {
     const limit = this.plugin.settings.recentLimit;
-    const pinned = new Set(this.plugin.settings.pinned ?? []);
+    const pinned = new Set((this.plugin.settings.pinned ?? []).map((entry) => entry.path));
     const history = this.plugin.openHistory || {};
     const byRecency = Object.keys(history).sort((a, b) => history[b] - history[a]);
     // El respaldo de Obsidian solo entra si el historial no tiene ningún archivo, aunque estén todos fijados;
@@ -1480,17 +1528,31 @@ module.exports = class FoyerPlugin extends Plugin {
   }
 
   isPinned(path) {
-    return this.settings.pinned.includes(path);
+    return this.settings.pinned.some((entry) => entry.path === path);
   }
 
   async pinFile(path) {
     if (this.isPinned(path)) return;
-    await this.updateSetting('pinned', [...this.settings.pinned, path]);
+    await this.updateSetting('pinned', [...this.settings.pinned, { path, color: '' }]);
   }
 
   async unpinFile(path) {
     if (!this.isPinned(path)) return;
-    await this.updateSetting('pinned', this.settings.pinned.filter((entry) => entry !== path));
+    await this.updateSetting('pinned', this.settings.pinned.filter((entry) => entry.path !== path));
+  }
+
+  // Color de una nota fijada: uno de PIN_COLORS o '' (sin color). Lo demás se ignora.
+  async setPinColor(path, color) {
+    if (color !== '' && !PIN_COLORS.includes(color)) return;
+    const entry = this.settings.pinned.find((item) => item.path === path);
+    if (!entry || entry.color === color) return;
+    await this.updateSetting('pinned', this.settings.pinned.map((item) => (item === entry ? { ...item, color } : item)));
+  }
+
+  // Guarda el orden nuevo de las fijadas (ver reorderPinned). Solo se guarda el orden, no posiciones.
+  async reorderPinned(order) {
+    const pinned = reorderPinned(this.settings.pinned, order);
+    if (pinned) await this.updateSetting('pinned', pinned);
   }
 
   async updateSetting(key, value) {
