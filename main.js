@@ -54,6 +54,7 @@ const STRINGS = {
     cardOpen: 'Abrir',
     cardOpenNewTab: 'Abrir en una pestaña nueva',
     cardColor: 'Color',
+    cardMoved: (title, position, total) => `${title}: posición ${position} de ${total}`,
     pinColors: {
       none: 'Sin color', yellow: 'Amarillo', orange: 'Naranja', red: 'Rojo', purple: 'Morado',
       blue: 'Azul', cyan: 'Cian', green: 'Verde', pink: 'Rosa',
@@ -122,6 +123,7 @@ const STRINGS = {
     cardOpen: 'Open',
     cardOpenNewTab: 'Open in new tab',
     cardColor: 'Color',
+    cardMoved: (title, position, total) => `${title} moved to position ${position} of ${total}`,
     pinColors: {
       none: 'No color', yellow: 'Yellow', orange: 'Orange', red: 'Red', purple: 'Purple',
       blue: 'Blue', cyan: 'Cyan', green: 'Green', pink: 'Pink',
@@ -524,6 +526,7 @@ const {
 } = homeSettingsModule.exports;
 
 const VIEW_TYPE = 'foyer';
+const ARROW_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']);
 let viewCounter = 0; // para que los ids ARIA de cada vista sean únicos
 
 // Ocultar temporales de Syncthing, dotfiles y .tmp
@@ -647,6 +650,11 @@ class HomeView extends ItemView {
     root.addClass('foyer');
 
     this.wrapEl = root.createDiv('foyer__wrap');
+    // Anuncia a los lectores de pantalla el resultado de mover una tarjeta (fuera del listbox)
+    this.liveEl = root.createDiv({
+      cls: 'foyer__live',
+      attr: { role: 'status', 'aria-live': 'polite', 'aria-atomic': 'true' },
+    });
 
     // Cabecera
     const hero = this.wrapEl.createDiv('foyer__hero');
@@ -857,7 +865,9 @@ class HomeView extends ItemView {
     });
     card.style.setProperty('--foyer-tilt', `${cardTilt(file.path)}deg`);
     this.addItem(this.recentItems, card, (mode) => this.openFile(file, mode), file);
-    this.recentItems[this.recentItems.length - 1].pinPath = file.path;
+    const item = this.recentItems[this.recentItems.length - 1];
+    item.pinPath = file.path;
+    item.pinTitle = displayName(file);
 
     card.createSpan({ cls: 'foyer__card-fold', attr: { 'aria-hidden': 'true' } });
     const label = STRINGS[this.plugin.getEffectiveLanguage()].unpinFromFoyer;
@@ -912,6 +922,33 @@ class HomeView extends ItemView {
       this.removeRecentAt(this.recentItems.indexOf(item));
     });
     remove.addEventListener('auxclick', (e) => e.stopPropagation());
+  }
+
+  // Alt + flechas: mueve un puesto la tarjeta seleccionada (←/↑ antes, →/↓ después). Devuelve true si la tecla
+  // se ha consumido, es decir, si hay una tarjeta seleccionada y la búsqueda está vacía.
+  moveSelectedCard(e) {
+    const item = this.recentItems[this.selected];
+    if (this.hasQuery || this.inputEl.value || !item?.pinPath) return false;
+    e.preventDefault();
+    if (this.pendingMove) return true; // el movimiento anterior aún se está guardando
+    const paths = this.recentItems.filter((entry) => entry.pinPath).map((entry) => entry.pinPath);
+    const from = paths.indexOf(item.pinPath);
+    const to = from + (e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 1);
+    if (to < 0 || to >= paths.length) return true; // no da la vuelta ni pasa a Recientes
+    paths.splice(to, 0, paths.splice(from, 1)[0]);
+    this.pendingMove = this.commitOrder(paths, item.pinTitle, to).finally(() => { this.pendingMove = null; });
+    return true;
+  }
+
+  // Guarda el orden nuevo; al repintar, la tarjeta movida sigue seleccionada y se anuncia su posición.
+  async commitOrder(paths, title, index) {
+    await this.plugin.reorderPinned(paths);
+    this.select(index);
+    this.announce(STRINGS[this.plugin.getEffectiveLanguage()].cardMoved(title, index + 1, paths.length));
+  }
+
+  announce(text) {
+    this.liveEl?.setText(text);
   }
 
   // Menú de una tarjeta (clic derecho): abrir, abrir en pestaña nueva, color y quitar de las fijadas.
@@ -1192,6 +1229,7 @@ class HomeView extends ItemView {
 
   onKeyDown(e) {
     if (e.isComposing) return;
+    if (e.altKey && ARROW_KEYS.has(e.key) && this.moveSelectedCard(e)) return;
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();

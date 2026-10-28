@@ -27,6 +27,7 @@ async function createViewFixture({
   const removed = [];
   const unpinned = [];
   const colored = [];
+  const reorders = [];
   const plugin = {
     settings: {
       name: 'Toni',
@@ -39,6 +40,14 @@ async function createViewFixture({
     getEffectiveLanguage: () => language,
     getLastOpened: (path) => history[path] || null,
     // Same contract as the real plugin, which also refreshes every open Foyer view.
+    // Same contract as the real plugin: the saved order changes (hidden entries keep their slot) and the view refreshes.
+    async reorderPinned(order) {
+      reorders.push([...order]);
+      const next = main.settingsModule.reorderPinned(plugin.settings.pinned, order);
+      if (!next) return;
+      plugin.settings = { ...plugin.settings, pinned: next };
+      view.refreshSettings();
+    },
     async setPinColor(path, color) {
       colored.push([path, color]);
       plugin.settings = {
@@ -83,7 +92,7 @@ async function createViewFixture({
     },
   };
   await view.onOpen();
-  return { main, view, plugin, files, opened, hoverEvents, leafCalls, notices, removed, unpinned, colored };
+  return { main, view, plugin, files, opened, hoverEvents, leafCalls, notices, removed, unpinned, colored, reorders };
 }
 
 // The listbox children in DOM order, looking through the (presentational) pinned board.

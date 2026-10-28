@@ -694,6 +694,18 @@
   color: var(--text-normal);
 }
 
+/* Aviso para lectores de pantalla: presente en el árbol de accesibilidad pero invisible */
+.foyer__live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 /* ── Movimiento ── */
 @keyframes foyer-in {
   from { opacity: 0; transform: translateY(6px); }
