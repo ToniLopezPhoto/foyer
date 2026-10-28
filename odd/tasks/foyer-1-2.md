@@ -80,9 +80,9 @@ Route note: the writer trigger (2+ non-trivial files) would fire for T3; I kept 
 - Acceptance: no code path calls `vault.delete`, `trash` or similar.
 
 ### T4 — Focus and new-tab commands
-- [ ] RED: "Focus Foyer search" focuses the input of the active Foyer, opens Foyer first when it is not active.
-- [ ] RED: "Open Foyer in a new tab" always opens a new Foyer tab (does not reuse the existing one).
-- [ ] GREEN: `focusSearch()` and `openHomeInNewTab()` on the plugin, commands, strings.
+- [x] RED: "Focus Foyer search" focuses the input of the active Foyer, opens Foyer first when it is not active.
+- [x] RED: "Open Foyer in a new tab" always opens a new Foyer tab (does not reuse the existing one).
+- [x] GREEN: `focusSearch()` and `openHomeInNewTab()` on the plugin, commands, strings.
 
 ### T5 — Docs and version
 - [ ] README (English + Spanish): "What's new in 1.2", keyboard shortcut table.
@@ -95,3 +95,4 @@ Route note: the writer trigger (2+ non-trivial files) would fire for T3; I kept 
 - T1 done. RED: new `tests/pinned.test.cjs` (22 tests) against the old `main.js`: 4 pass (vacuous) / 18 fail (full suite 139 pass / 18 fail). GREEN: full suite 157 pass / 0 fail; `node --check main.js` ok; `git diff --check` clean. Refactor: `renameInPinned` rewritten as a plain loop. Note: the vault `rename`/`delete` handlers now also persist `pinned` through `updateSetting` (they became async).
 - T2 done. RED: new `tests/pinned-view.test.cjs` (18 tests) + `tests/support/view-fixture.cjs` against the old view: 1 pass / 17 fail (full suite 158 pass / 17 fail). GREEN after `renderRecent` / `renderSection` / `renderRow`: 16 older recents tests failed only because `recentRows` took every child of the listbox; the helper in `tests/recents-keyboard.test.cjs` now keeps `role="option"` children (headings moved inside the listbox) with no assertion changed. Full suite 175 pass / 0 fail; `node --check main.js` ok; `git diff --check` clean. Decision implemented: the Obsidian fallback only kicks in when the history resolves to no file at all, even if all of it is pinned.
 - T3 done. RED: new `tests/recents-management.test.cjs` (15 tests, plus `tests/support/plugin-fixture.cjs` extracted from the pinned tests) against the old code: 1 pass / 14 fail (full suite 176 pass / 14 fail). GREEN: full suite 190 pass / 0 fail; `node --check main.js` ok; `git diff --check` clean. Decision refined while implementing: rows that come from the Obsidian fallback also get the ✕ (it works through the in-memory `dismissedRecent` set, so they do not come back); `Delete` and ✕ keep the selection on the row that takes the removed row place. No code path calls vault delete or trash.
+- T4 done. RED: new `tests/commands.test.cjs` (7 tests; `createPluginFixture` gained a `workspace` override) against the old code: 0 pass / 7 fail, failures are the missing commands/strings. GREEN: full suite 197 pass / 0 fail; `node --check main.js` ok; `git diff --check` clean. `focusSearch` reuses `openHome` only when no Foyer view is active; `openHomeInNewTab` always creates a tab with `getLeaf("tab")`.

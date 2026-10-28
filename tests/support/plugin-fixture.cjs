@@ -27,7 +27,8 @@ function createMenu() {
 
 // A FoyerPlugin over a fake app. `local` is the per-device open history, `lastOpen` what Obsidian's
 // getLastOpenFiles() returns and `leaves` the open Foyer leaves (anything with a `view`).
-function createPluginFixture({ data = null, local = null, lastOpen = [], leaves = [] } = {}) {
+// `workspace` replaces or adds workspace methods (getLeaf, getActiveViewOfType...).
+function createPluginFixture({ data = null, local = null, lastOpen = [], leaves = [], workspace = {} } = {}) {
   const main = loadMain({ deferDebounce: true });
   const activeFile = { current: null }; // a test can change the active note after onload()
   const plugin = new main.FoyerPlugin();
@@ -45,6 +46,7 @@ function createPluginFixture({ data = null, local = null, lastOpen = [], leaves 
       getActiveFile: () => activeFile.current,
       getLeavesOfType: () => leaves,
       getLastOpenFiles: () => lastOpen,
+      ...workspace,
     },
     vault: {
       on(name, cb) { handlers[`vault:${name}`] = cb; return {}; },

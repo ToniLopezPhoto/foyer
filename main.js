@@ -43,6 +43,8 @@ const STRINGS = {
     globalSearchUnavailable: 'La búsqueda global no está disponible.',
     createNoteFailed: 'No se pudo crear la nota.',
     openHome: 'Abrir inicio',
+    commandFocusSearch: 'Enfocar la búsqueda de Foyer',
+    commandOpenNewTab: 'Abrir Foyer en una pestaña nueva',
     commandPinCurrent: 'Fijar nota actual en Foyer',
     commandUnpinCurrent: 'Quitar nota actual de Foyer',
     pinToFoyer: 'Fijar en Foyer',
@@ -102,6 +104,8 @@ const STRINGS = {
     globalSearchUnavailable: 'Global search is unavailable.',
     createNoteFailed: 'Could not create the note.',
     openHome: 'Open home',
+    commandFocusSearch: 'Focus Foyer search',
+    commandOpenNewTab: 'Open Foyer in a new tab',
     commandPinCurrent: 'Pin current note to Foyer',
     commandUnpinCurrent: 'Unpin current note from Foyer',
     pinToFoyer: 'Pin to Foyer',
@@ -1415,6 +1419,8 @@ module.exports = class FoyerPlugin extends Plugin {
     pinCommand('pin-current', strings.commandPinCurrent, (pinned) => !pinned, (path) => this.pinFile(path));
     pinCommand('unpin-current', strings.commandUnpinCurrent, (pinned) => pinned, (path) => this.unpinFile(path));
     this.addCommand({ id: 'clear-history', name: strings.commandClearHistory, callback: () => this.clearHistory() });
+    this.addCommand({ id: 'focus-search', name: strings.commandFocusSearch, callback: () => this.focusSearch() });
+    this.addCommand({ id: 'open-new-tab', name: strings.commandOpenNewTab, callback: () => this.openHomeInNewTab() });
     // Menú contextual de archivos: una sola entrada, para fijar o para quitar.
     this.registerEvent(ws.on('file-menu', (menu, file) => {
       if (!isListed(file)) return;
@@ -1511,6 +1517,22 @@ module.exports = class FoyerPlugin extends Plugin {
       leaf = recent && recent.view?.getViewType() === 'empty' ? recent : ws.getLeaf('tab');
       await leaf.setViewState({ type: VIEW_TYPE, active: true });
     }
+    await ws.revealLeaf(leaf);
+    ws.setActiveLeaf(leaf, { focus: true });
+  }
+
+  // Pone el cursor en la búsqueda de Foyer; si Foyer no es la vista activa, la abre o la trae al frente antes.
+  async focusSearch() {
+    const ws = this.app.workspace;
+    if (!ws.getActiveViewOfType(HomeView)) await this.openHome();
+    ws.getActiveViewOfType(HomeView)?.inputEl?.focus();
+  }
+
+  // Abre otro Foyer en una pestaña nueva, aunque ya haya uno abierto (openHome reutiliza el existente).
+  async openHomeInNewTab() {
+    const ws = this.app.workspace;
+    const leaf = ws.getLeaf('tab');
+    await leaf.setViewState({ type: VIEW_TYPE, active: true });
     await ws.revealLeaf(leaf);
     ws.setActiveLeaf(leaf, { focus: true });
   }
