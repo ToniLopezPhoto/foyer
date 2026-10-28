@@ -95,9 +95,11 @@ async function createViewFixture({
   return { main, view, plugin, files, opened, hoverEvents, leafCalls, notices, removed, unpinned, colored, reorders };
 }
 
-// The listbox children in DOM order, looking through the (presentational) pinned board.
+const isGroup = (el) => el.classes.has('foyer__board') || el.classes.has('foyer__recent-group');
+
+// The listbox children in DOM order, looking through its two groups (the pinned board and the Recent group).
 function listboxChildren(view) {
-  return view.recentEl.children.flatMap((child) => (child.classes.has('foyer__board') ? child.children : [child]));
+  return view.recentEl.children.flatMap((child) => (isGroup(child) ? child.children : [child]));
 }
 
 // Options of the single Foyer listbox (pinned cards, then Recent rows) and its section headings, in DOM order.
@@ -107,16 +109,16 @@ const cardsOf = (view) => (boardOf(view) ? boardOf(view).children.filter((el) =>
 const rowTitle = (row) => (row.classes.has('foyer__card')
   ? row.children.find((child) => child.classes.has('foyer__card-title')).text
   : row.children[1].children[0].text);
-const sectionHeads = (view) => view.recentEl.children.filter((el) => el.classes.has('foyer__section-head'));
+const recentGroupOf = (view) => view.recentEl.children.find((el) => el.classes.has('foyer__recent-group')) || null;
+// Visible section headings (the pinned board has none)
+const sectionHeads = (view) => listboxChildren(view).filter((el) => el.classes.has('foyer__section-head'));
 
-// [{ head: 'Pinned', rows: ['A', ...] }, ...] following the listbox children in order.
+// [{ head: 'Pinned', rows: ['A', ...] }, ...]: one entry per group, named by its accessible label.
 function sections(view) {
-  const out = [];
-  for (const child of listboxChildren(view)) {
-    if (child.classes.has('foyer__section-head')) out.push({ head: child.children[0].text, rows: [] });
-    else if (child.attributes.role === 'option') out[out.length - 1].rows.push(rowTitle(child));
-  }
-  return out;
+  return view.recentEl.children.filter(isGroup).map((group) => ({
+    head: group.attributes['aria-label'],
+    rows: group.children.filter((el) => el.attributes.role === 'option').map(rowTitle),
+  }));
 }
 
-module.exports = { createViewFixture, optionRows, boardOf, cardsOf, rowTitle, sectionHeads, sections };
+module.exports = { createViewFixture, optionRows, boardOf, cardsOf, recentGroupOf, rowTitle, sectionHeads, sections };

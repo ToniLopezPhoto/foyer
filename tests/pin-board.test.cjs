@@ -2,7 +2,7 @@
 
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
-const { createViewFixture, optionRows, boardOf, cardsOf, rowTitle, sections } = require('./support/view-fixture.cjs');
+const { createViewFixture, optionRows, boardOf, cardsOf, recentGroupOf, rowTitle, sections } = require('./support/view-fixture.cjs');
 
 const cardTexts = (card) => card.children.filter((child) => child.text).map((child) => child.text);
 
@@ -22,11 +22,12 @@ test('pinned notes are cards on a board inside the listbox; Recent stays a list 
   const fixture = await board();
   const boardEl = boardOf(fixture.view);
   assert.ok(boardEl, 'board');
-  assert.equal(boardEl.attributes.role, 'presentation');
+  assert.equal(boardEl.attributes.role, 'group');
+  assert.equal(boardEl.attributes['aria-label'], 'Pinned');
   assert.equal(fixture.view.recentEl.attributes.role, 'listbox');
   assert.deepEqual(cardsOf(fixture.view).map(rowTitle), ['Inbox', 'Plan', 'Idea']);
   assert.ok(cardsOf(fixture.view).every((card) => card.attributes.role === 'option'));
-  const recentRows = fixture.view.recentEl.children.filter((el) => el.classes.has('foyer__row'));
+  const recentRows = recentGroupOf(fixture.view).children.filter((el) => el.classes.has('foyer__row'));
   assert.equal(recentRows.length, 1);
   assert.deepEqual(sections(fixture.view), [
     { head: 'Pinned', rows: ['Inbox', 'Plan', 'Idea'] },

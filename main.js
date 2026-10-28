@@ -846,31 +846,28 @@ class HomeView extends ItemView {
 
     if (pinned.length) this.renderBoard(strings.pinned, pinned);
     // Con notas fijadas y nada más en el historial, «Recientes» no se muestra (ni dice que no hay nada).
-    if (recent.length || !pinned.length) this.renderSection(strings.recent, recent, true);
-    if (!recent.length && !pinned.length) {
-      this.recentEl.createDiv({ cls: 'foyer__empty', text: strings.emptyRecent });
+    if (recent.length || !pinned.length) {
+      const group = this.renderSection(strings.recent, recent, true);
+      if (!pinned.length && !recent.length) group.createDiv({ cls: 'foyer__empty', text: strings.emptyRecent });
     }
     this.updateRecentTimes();
     this.syncAria();
   }
 
-  // Encabezado (decorativo: las opciones del listbox siguen siendo solo las filas o tarjetas).
-  renderHead(label) {
-    const head = this.recentEl.createDiv({ cls: 'foyer__section-head', attr: { role: 'presentation' } });
-    head.createSpan({ cls: 'foyer__label', text: label });
-  }
-
-  // Encabezado y filas. Las filas `removable` (Recientes) se pueden quitar del historial.
+  // Grupo de «Recientes»: encabezado (decorativo) y filas, que se pueden quitar del historial. Las opciones del
+  // listbox siguen siendo solo las filas; el grupo agrupa para la maquetación (columnas) y para los lectores de pantalla.
   renderSection(label, files, removable = false) {
-    this.renderHead(label);
+    this.rowsEl = this.recentEl.createDiv({ cls: 'foyer__recent-group', attr: { role: 'group', 'aria-label': label } });
+    const head = this.rowsEl.createDiv({ cls: 'foyer__section-head', attr: { role: 'presentation' } });
+    head.createSpan({ cls: 'foyer__label', text: label });
     for (const file of files) this.renderRow(file, removable);
+    return this.rowsEl;
   }
 
-  // Las fijadas son un tablero de tarjetas cuadradas (rejilla adaptable: solo se guarda su orden).
-  // El contenedor es presentacional: las tarjetas siguen siendo opciones del mismo listbox.
+  // Las fijadas son un tablero de tarjetas cuadradas (rejilla adaptable: solo se guarda su orden), sin rótulo
+  // visible; el grupo lleva su nombre para los lectores de pantalla. Las tarjetas son opciones del mismo listbox.
   renderBoard(label, files) {
-    this.renderHead(label);
-    this.boardEl = this.recentEl.createDiv({ cls: 'foyer__board', attr: { role: 'presentation' } });
+    this.boardEl = this.recentEl.createDiv({ cls: 'foyer__board', attr: { role: 'group', 'aria-label': label } });
     const colors = new Map(this.plugin.settings.pinned.map((entry) => [entry.path, entry.color]));
     for (const file of files) this.renderCard(file, colors.get(file.path) || '');
   }
@@ -917,7 +914,7 @@ class HomeView extends ItemView {
   }
 
   renderRow(file, removable) {
-    const row = this.recentEl.createDiv({ cls: 'foyer__row', attr: { title: file.path } });
+    const row = this.rowsEl.createDiv({ cls: 'foyer__row', attr: { title: file.path } });
     this.addItem(this.recentItems, row, (mode) => this.openFile(file, mode), file);
     const item = this.recentItems[this.recentItems.length - 1];
     setIcon(row.createSpan('foyer__row-icon'), iconFor(file));

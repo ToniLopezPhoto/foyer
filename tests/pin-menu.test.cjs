@@ -3,7 +3,7 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const { loadMain } = require('./support/load-main.cjs');
-const { createViewFixture, cardsOf, rowTitle } = require('./support/view-fixture.cjs');
+const { createViewFixture, cardsOf, recentGroupOf, rowTitle } = require('./support/view-fixture.cjs');
 
 const COLORS = ['yellow', 'orange', 'red', 'purple', 'blue', 'cyan', 'green', 'pink'];
 
@@ -121,7 +121,7 @@ test('without submenu support the colors are listed in the main menu', async () 
 /* ── Scope ── */
 test('Recent rows have no card menu', async () => {
   const fixture = await board();
-  const row = fixture.view.recentEl.children.find((el) => el.classes.has('foyer__row'));
+  const row = recentGroupOf(fixture.view).children.find((el) => el.classes.has('foyer__row'));
   const before = fixture.main.menus.length;
   row.dispatch('contextmenu', { preventDefault() {} });
   assert.equal(fixture.main.menus.length, before);

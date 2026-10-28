@@ -3,7 +3,7 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const { loadMain } = require('./support/load-main.cjs');
-const { createViewFixture, optionRows, rowTitle, sectionHeads, sections } = require('./support/view-fixture.cjs');
+const { createViewFixture, optionRows, recentGroupOf, rowTitle, sectionHeads, sections } = require('./support/view-fixture.cjs');
 
 const key = (name, extra = {}) => ({ key: name, preventDefault() {}, ...extra });
 const selectedTitles = (fixture) => optionRows(fixture.view)
@@ -75,7 +75,7 @@ test('when everything in the history is pinned the Recent section is omitted', a
     lastOpen: ['Other.md'],
   });
   assert.deepEqual(sections(fixture.view), [{ head: 'Pinned', rows: ['A', 'B'] }]);
-  assert.equal(fixture.view.recentEl.children.some((el) => el.classes.has('foyer__empty')), false);
+  assert.equal(recentGroupOf(fixture.view), null);
 });
 
 test('the Obsidian fallback also leaves out pinned notes', async () => {
@@ -93,7 +93,7 @@ test('the Obsidian fallback also leaves out pinned notes', async () => {
 test('with no pinned notes and no history the empty message is still shown under Recent', async () => {
   const fixture = await createViewFixture({});
   assert.deepEqual(sections(fixture.view), [{ head: 'Recent', rows: [] }]);
-  assert.equal(fixture.view.recentEl.children.some((el) => el.classes.has('foyer__empty')), true);
+  assert.equal(recentGroupOf(fixture.view).children.some((el) => el.classes.has('foyer__empty')), true);
 });
 
 test('pinned notes with an empty Recent show only the Pinned section', async () => {

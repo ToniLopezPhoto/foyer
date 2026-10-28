@@ -470,9 +470,9 @@
   height: 1px;
   background: var(--background-modifier-border);
 }
-/* Segunda sección dentro del mismo listbox (Recientes bajo Fijadas) */
-.foyer__row + .foyer__section-head {
-  margin-top: 1.8em;
+/* Recientes bajo el tablero de fijadas */
+.foyer__board + .foyer__recent-group {
+  margin-top: 2.4em;
 }
 .foyer__label {
   font-family: var(--font-interface);
@@ -584,8 +584,6 @@
 }
 
 .foyer__card {
-  --foyer-card-rgb: var(--mono-rgb-100);
-  --foyer-card-tint: 0;
   position: relative;
   box-sizing: border-box;
   aspect-ratio: 1 / 1;
@@ -598,9 +596,7 @@
   overflow: hidden;
   border: 1px solid var(--background-modifier-border);
   border-radius: 6px 6px 14px 6px;
-  background:
-    linear-gradient(rgba(var(--foyer-card-rgb), var(--foyer-card-tint)), rgba(var(--foyer-card-rgb), var(--foyer-card-tint))),
-    var(--background-secondary);
+  background: transparent;
   box-shadow: var(--shadow-s);
   color: var(--text-normal);
   cursor: pointer;
@@ -613,22 +609,21 @@
 .foyer__card:hover,
 .foyer__card.is-selected {
   transform: rotate(0deg) translateY(-3px);
-  box-shadow: var(--shadow-l);
   z-index: 1;
 }
 .foyer__card.is-selected {
   border-color: var(--interactive-accent);
 }
 
-/* Colores de la paleta del tema: un tinte suave sobre el fondo neutro */
-.foyer__card--yellow { --foyer-card-rgb: var(--color-yellow-rgb); --foyer-card-tint: 0.24; }
-.foyer__card--orange { --foyer-card-rgb: var(--color-orange-rgb); --foyer-card-tint: 0.24; }
-.foyer__card--red { --foyer-card-rgb: var(--color-red-rgb); --foyer-card-tint: 0.22; }
-.foyer__card--purple { --foyer-card-rgb: var(--color-purple-rgb); --foyer-card-tint: 0.22; }
-.foyer__card--blue { --foyer-card-rgb: var(--color-blue-rgb); --foyer-card-tint: 0.22; }
-.foyer__card--cyan { --foyer-card-rgb: var(--color-cyan-rgb); --foyer-card-tint: 0.24; }
-.foyer__card--green { --foyer-card-rgb: var(--color-green-rgb); --foyer-card-tint: 0.22; }
-.foyer__card--pink { --foyer-card-rgb: var(--color-pink-rgb); --foyer-card-tint: 0.22; }
+/* Colores de la paleta del tema: el color de la nota solo se ve en el borde, nunca como fondo */
+.foyer__card--yellow { border-color: rgba(var(--color-yellow-rgb), 0.8); }
+.foyer__card--orange { border-color: rgba(var(--color-orange-rgb), 0.8); }
+.foyer__card--red { border-color: rgba(var(--color-red-rgb), 0.8); }
+.foyer__card--purple { border-color: rgba(var(--color-purple-rgb), 0.8); }
+.foyer__card--blue { border-color: rgba(var(--color-blue-rgb), 0.8); }
+.foyer__card--cyan { border-color: rgba(var(--color-cyan-rgb), 0.8); }
+.foyer__card--green { border-color: rgba(var(--color-green-rgb), 0.8); }
+.foyer__card--pink { border-color: rgba(var(--color-pink-rgb), 0.8); }
 
 /* Esquina doblada */
 .foyer__card-fold {
@@ -642,10 +637,9 @@
   pointer-events: none;
 }
 
+/* Mismo tamaño y grosor que el título de una fila de Recientes (.foyer__row-title) */
 .foyer__card-title {
   font-size: 0.88em;
-  line-height: 1.25;
-  font-weight: var(--font-semibold);
   display: -webkit-box;
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
@@ -654,7 +648,7 @@
 }
 .foyer__card-path {
   font-family: var(--font-interface);
-  font-size: 0.6em;
+  font-size: 0.62em;
   color: var(--text-faint);
   white-space: nowrap;
   overflow: hidden;
