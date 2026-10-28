@@ -51,6 +51,7 @@ Roadmap context: 1.2 (this), 1.3 (greeting options, Recents grouped by date, ran
 | T3 | Recents management: ✕ button, `Delete` key, "Clear Recent history" command and settings button | inline | same files, depends on T2 |
 | T4 | Commands "Focus Foyer search" and "Open Foyer in a new tab" | inline | small, two commands + tests |
 | T5 | Docs and version 1.2.0 | inline | docs and 2 JSON lines; no research needed |
+| T6 | Pinned section becomes a reorderable sticky-note board (added after the user tested T1–T5 in a real vault) | inline, 6 sequential work units (T6.1–T6.6) | same two source files plus tests; each unit builds on the previous one |
 
 Route note: the writer trigger (2+ non-trivial files) would fire for T3; I kept every task inline because the tasks are sequential edits to the same two files (`main.js`, tests) and a second writer would only add handoff cost. Recorded so the skip is visible.
 
@@ -89,6 +90,27 @@ Route note: the writer trigger (2+ non-trivial files) would fire for T3; I kept 
 - [x] `CHANGELOG.md` `[1.2.0]`; `manifest.json` 1.2.0; `versions.json` `"1.2.0": "1.8.7"`.
 - Acceptance: the release workflow's tag check and the CI manifest/versions check would pass for tag `1.2.0`; JSON parses; `git diff --check` clean.
 
+### T6 — Sticky-note board for Pinned (requested after the first delivery)
+
+Settled with the user (not reopened): square 1:1 cards with a deterministic ±1–2° tilt from a hash of the path, soft shadow, folded corner, straighten and lift on hover or selection, `prefers-reduced-motion` respected; the card shows only the note title and folder (note content is never read); optional color from the theme palette (`--color-*`, tint through `--color-*-rgb`), none = neutral card; right-click `Menu` with Open, Open in new tab, a Color submenu and Unpin; the color is stored with the pin (`pinned: [{ path, color }]`, and `normalizeSettings` still accepts the plain `string[]`); responsive grid (`auto-fill` / `minmax`, 2 columns on mobile), only the order is stored; reorder by dragging with pointer events (≈300 ms long press on touch, FLIP animation, persisted on drop) and `Alt+←/→/↑/↓` with an `aria-live` announcement; ↑/↓, Enter, the unpin ✕ and the hover preview keep working.
+
+Design decisions made here:
+- Entries are always written as objects `{ path, color }` (color is one of the eight palette names or an empty string). Invalid entries are dropped, duplicates keep the first, unknown colors become "none".
+- Reordering works on the visible cards: hidden entries (not synced yet, excluded) keep their slots, so a drag never loses a pin (`reorderPinned`).
+- `Alt+←/↑` moves the selected card one place earlier and `Alt+→/↓` one place later. A grid-aware row jump for `Alt+↑/↓` would need layout measurements; one place keeps it predictable.
+- The board sits inside the same single listbox (`recentEl`) as presentational wrapper, so the combobox ARIA and the linear ↑/↓ navigation are unchanged. Cards have an unpin ✕ on hover (there was no unpin button before T6).
+- A long press on touch that ends without moving opens the context menu (otherwise the menu would be unreachable on touch, because the long press starts the drag).
+- While a drag is active, renders are deferred until the drop.
+
+| Unit | Content |
+|---|---|
+| T6.1 | Data model: `pinned: [{ path, color }]` normalization (both schemas), `setPinColor`, `reorderPinned`, `cardTilt` helper; existing pinned tests updated for the new shape |
+| T6.2 | Board render: grid of cards (title, folder, folded corner, unpin ✕, color class, tilt), CSS |
+| T6.3 | Context menu: Open, Open in new tab, Color submenu, Unpin |
+| T6.4 | Keyboard reorder (`Alt+arrows`) with `aria-live` announcement |
+| T6.5 | Pointer-events drag and drop (mouse and touch long press) with FLIP, persisted on drop |
+| T6.6 | README and CHANGELOG 1.2.0 describe the board; evidence and commits recorded |
+
 ## Progress
 
 - Plan written before any code. Branch starts from `af603dc`.
@@ -103,3 +125,4 @@ Route note: the writer trigger (2+ non-trivial files) would fire for T3; I kept 
 - Final checks on HEAD: `node --check main.js` ok; `node --test tests/*.test.cjs` 197 pass / 0 fail (was 135 before this feature); `git diff --check` clean.
 - Not done (user decision): push, PR, tag `1.2.0`, release. RDD assessment not run. The built-in browser / a real Obsidian vault was not used: behavior is verified through the fake Obsidian in `tests/support/load-main.cjs` only, and the new CSS (✕ button, second section heading) has not been looked at in a real theme.
 - Open questions for the maintainer: (1) the `[1.2.0]` changelog date is 2026-10-28; (2) `dismissedRecent` is in memory only, so after a restart the Obsidian fallback could show a note removed earlier if the history is empty (rare: only when the history has no resolvable file); (3) no cap on the number of pinned notes.
+- T6 planned (this section), before any T6 code. T5 (docs/version) stays open until T6.6 updates the README and CHANGELOG 1.2.0 entries.
