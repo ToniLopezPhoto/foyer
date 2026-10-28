@@ -573,6 +573,127 @@
   color: var(--text-faint);
 }
 
+/* ── Fijadas: tablero de notas adhesivas ── */
+/* Rejilla adaptable: unas 5 tarjetas por fila en escritorio y 2 en pantallas estrechas. */
+.foyer__board {
+  position: relative; /* referencia de posición al arrastrar */
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 12px;
+  padding: 6px 0 4px;
+}
+
+.foyer__card {
+  --foyer-card-rgb: var(--mono-rgb-100);
+  --foyer-card-tint: 0;
+  position: relative;
+  box-sizing: border-box;
+  aspect-ratio: 1 / 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.3em;
+  padding: 0.8em 0.8em 0.7em;
+  overflow: hidden;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px 6px 14px 6px;
+  background:
+    linear-gradient(rgba(var(--foyer-card-rgb), var(--foyer-card-tint)), rgba(var(--foyer-card-rgb), var(--foyer-card-tint))),
+    var(--background-secondary);
+  box-shadow: var(--shadow-s);
+  color: var(--text-normal);
+  cursor: pointer;
+  transform: rotate(var(--foyer-tilt, 0deg));
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.foyer__card:hover,
+.foyer__card.is-selected {
+  transform: rotate(0deg) translateY(-3px);
+  box-shadow: var(--shadow-l);
+  z-index: 1;
+}
+.foyer__card.is-selected {
+  border-color: var(--interactive-accent);
+}
+
+/* Colores de la paleta del tema: un tinte suave sobre el fondo neutro */
+.foyer__card--yellow { --foyer-card-rgb: var(--color-yellow-rgb); --foyer-card-tint: 0.24; }
+.foyer__card--orange { --foyer-card-rgb: var(--color-orange-rgb); --foyer-card-tint: 0.24; }
+.foyer__card--red { --foyer-card-rgb: var(--color-red-rgb); --foyer-card-tint: 0.22; }
+.foyer__card--purple { --foyer-card-rgb: var(--color-purple-rgb); --foyer-card-tint: 0.22; }
+.foyer__card--blue { --foyer-card-rgb: var(--color-blue-rgb); --foyer-card-tint: 0.22; }
+.foyer__card--cyan { --foyer-card-rgb: var(--color-cyan-rgb); --foyer-card-tint: 0.24; }
+.foyer__card--green { --foyer-card-rgb: var(--color-green-rgb); --foyer-card-tint: 0.22; }
+.foyer__card--pink { --foyer-card-rgb: var(--color-pink-rgb); --foyer-card-tint: 0.22; }
+
+/* Esquina doblada */
+.foyer__card-fold {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  background: linear-gradient(135deg, var(--background-primary) 50%, rgba(var(--mono-rgb-100), 0.1) 50%);
+  border-top-left-radius: 4px;
+  pointer-events: none;
+}
+
+.foyer__card-title {
+  font-size: 0.88em;
+  line-height: 1.25;
+  font-weight: var(--font-semibold);
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.foyer__card-path {
+  font-family: var(--font-interface);
+  font-size: 0.6em;
+  color: var(--text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.foyer__card-unpin {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.6em;
+  height: 1.6em;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.foyer__card-unpin svg {
+  width: 0.8em;
+  height: 0.8em;
+}
+.foyer__card:hover .foyer__card-unpin,
+.foyer__card.is-selected .foyer__card-unpin,
+.foyer__card-unpin:focus-visible {
+  opacity: 1;
+}
+.foyer__card-unpin:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
 /* ── Movimiento ── */
 @keyframes foyer-in {
   from { opacity: 0; transform: translateY(6px); }
@@ -581,6 +702,10 @@
 @media (prefers-reduced-motion: reduce) {
   .foyer__wrap { animation: none; }
   .foyer__spark { transition: none; }
+  /* Sin animación ni elevación al pasar por encima; la inclinación fija se queda (no es movimiento). */
+  .foyer__card { transition: none; }
+  .foyer__card:hover,
+  .foyer__card.is-selected { transform: rotate(var(--foyer-tilt, 0deg)); }
 }
 
 /* ── Móvil ── */
@@ -591,8 +716,12 @@
   width: min(100%, 220px);
   max-height: 140px;
 }
-.is-mobile .foyer__row-remove {
+.is-mobile .foyer__row-remove,
+.is-mobile .foyer__card-unpin {
   opacity: 1;
+}
+.is-mobile .foyer__board {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 .is-mobile .foyer__row-path,
 .is-mobile .foyer__help {

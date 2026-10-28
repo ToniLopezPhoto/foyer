@@ -37,7 +37,7 @@ function createElement(options = {}) {
     text: '',
     value: '',
     hidden: false,
-    style: {},
+    style: { setProperty(name, value) { this[name] = String(value); } },
     children: [],
     attributes: {},
     listeners: {},

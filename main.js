@@ -802,7 +802,7 @@ class HomeView extends ItemView {
     const recent = this.getRecentFiles();
     this.recentEl.setAttribute('aria-label', pinned.length ? `${strings.pinned}, ${strings.recent}` : strings.recent);
 
-    if (pinned.length) this.renderSection(strings.pinned, pinned);
+    if (pinned.length) this.renderBoard(strings.pinned, pinned);
     // Con notas fijadas y nada más en el historial, «Recientes» no se muestra (ni dice que no hay nada).
     if (recent.length || !pinned.length) this.renderSection(strings.recent, recent, true);
     if (!recent.length && !pinned.length) {
@@ -812,12 +812,56 @@ class HomeView extends ItemView {
     this.syncAria();
   }
 
-  // Encabezado (decorativo: las opciones del listbox siguen siendo solo las filas) y sus filas.
-  // Las filas `removable` (Recientes) se pueden quitar del historial.
-  renderSection(label, files, removable = false) {
+  // Encabezado (decorativo: las opciones del listbox siguen siendo solo las filas o tarjetas).
+  renderHead(label) {
     const head = this.recentEl.createDiv({ cls: 'foyer__section-head', attr: { role: 'presentation' } });
     head.createSpan({ cls: 'foyer__label', text: label });
+  }
+
+  // Encabezado y filas. Las filas `removable` (Recientes) se pueden quitar del historial.
+  renderSection(label, files, removable = false) {
+    this.renderHead(label);
     for (const file of files) this.renderRow(file, removable);
+  }
+
+  // Las fijadas son un tablero de tarjetas cuadradas (rejilla adaptable: solo se guarda su orden).
+  // El contenedor es presentacional: las tarjetas siguen siendo opciones del mismo listbox.
+  renderBoard(label, files) {
+    this.renderHead(label);
+    this.boardEl = this.recentEl.createDiv({ cls: 'foyer__board', attr: { role: 'presentation' } });
+    const colors = new Map(this.plugin.settings.pinned.map((entry) => [entry.path, entry.color]));
+    for (const file of files) this.renderCard(file, colors.get(file.path) || '');
+  }
+
+  // Nota adhesiva: solo el título y la carpeta (nunca se lee el contenido de la nota), con una inclinación
+  // fija según su ruta y, si lo tiene, el color de la paleta del tema.
+  renderCard(file, color) {
+    const card = this.boardEl.createDiv({
+      cls: color ? `foyer__card foyer__card--${color}` : 'foyer__card',
+      attr: { title: file.path },
+    });
+    card.style.setProperty('--foyer-tilt', `${cardTilt(file.path)}deg`);
+    this.addItem(this.recentItems, card, (mode) => this.openFile(file, mode), file);
+    this.recentItems[this.recentItems.length - 1].pinPath = file.path;
+
+    card.createSpan({ cls: 'foyer__card-fold', attr: { 'aria-hidden': 'true' } });
+    const label = STRINGS[this.plugin.getEffectiveLanguage()].unpinFromFoyer;
+    const unpin = card.createEl('button', {
+      cls: 'foyer__card-unpin',
+      attr: { type: 'button', tabindex: '-1', 'aria-label': label, title: label },
+    });
+    setIcon(unpin, 'x');
+    // Ni el clic ni el arrastre deben llegar a la tarjeta (la abriría o empezaría a moverla).
+    unpin.addEventListener('pointerdown', (e) => e.stopPropagation());
+    unpin.addEventListener('auxclick', (e) => e.stopPropagation());
+    unpin.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.plugin.unpinFile(file.path);
+    });
+
+    card.createDiv({ cls: 'foyer__card-title', text: displayName(file) });
+    const folder = folderOf(file);
+    if (folder) card.createDiv({ cls: 'foyer__card-path', text: folder });
   }
 
   renderRow(file, removable) {
