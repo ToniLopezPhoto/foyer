@@ -111,6 +111,26 @@ Design decisions made here:
 | T6.5 | Pointer-events drag and drop (mouse and touch long press) with FLIP, persisted on drop |
 | T6.6 | README and CHANGELOG 1.2.0 describe the board; evidence and commits recorded |
 
+### T7 — Board polish, pin icon in Recent, visible sections and two columns (requested by the user after trying T6)
+
+Requested (user, in Spanish): remove the hover shadow of the cards; no background color on the sticky note; the card text must have the same size and weight as in Recent; add a pin icon to the Recent rows to pin notes; remove the "Pinned" label; add a configurable filter to choose which parts of the home are visible (greeting, search box, pins, recents), or two columns for recents and pins.
+
+Interpretation and decisions made here (flag to the user in the report):
+- Hover and selected cards lose the shadow change; they still straighten and lift. The resting soft shadow and the shadow while dragging stay.
+- "No background color": cards are transparent with a border and no tint. The pin color from the Color submenu stays (data and menu are kept) and is now shown as the card border instead of a fill, so the feature is not lost. If the user wants the color feature gone, that is a follow-up.
+- Card title: same size (0.88em) and weight as `.foyer__row-title`; folder: same size as `.foyer__row-path`.
+- The visible "Pinned" heading goes away. For assistive technology the board becomes `role="group"` with an `aria-label` (valid inside the listbox), and the Recent rows move into a `role="group"` wrapper so both columns can be laid out. The "Recent" heading stays.
+- New settings (all on by default, so nothing changes until the user opts in): `showGreeting` (date, greeting and hero image), `showSearch`, `showPinned`, `showRecent`, and `layout`: `stacked` (default) or `columns` (pins left, Recent right, collapsing to one column on narrow panes). Hidden pins are not removed from the data and, while pins are hidden, pinned notes appear in Recent again.
+- Without the search box the keyboard list navigation has no input to live in; the settings description says so, the rows stay clickable.
+- The pin icon on Recent rows only shows while pins are shown.
+
+| Unit | Content |
+|---|---|
+| T7.1 | Card look (no hover shadow, no background, Recent typography), no visible Pinned heading, group roles |
+| T7.2 | Pin icon on Recent rows |
+| T7.3 | Visibility settings and two-column layout |
+| T7.4 | README, CHANGELOG 1.2.0, evidence |
+
 ## Progress
 
 - Plan written before any code. Branch starts from `af603dc`.
@@ -134,3 +154,4 @@ Design decisions made here:
 - T6.6 done (docs). README (What's new in 1.2, the Keep a few notes at hand feature, shortcut table, commands table, privacy line, Spanish section) and CHANGELOG [1.2.0] now describe the board, the card menu, drag and Alt+arrow reordering. No RED applicable (docs). Checks: `node --check main.js` ok; 267 pass / 0 fail; `git diff --check` clean; manifest 1.2.0 and versions `"1.2.0": "1.8.7"` unchanged and consistent.
 - T6 commits: plan `5e3e108`; T6.1 `f356ecb`; T6.2 `f2a01bb`; T6.3 `54a4d89`; T6.4 `00d37a4`; T6.5 `1c0a3bf`; T6.6 `0768692`. Size (insertions + deletions, tests included): T6.1 261, T6.2 369, T6.3 239, T6.4 233, T6.5 531, T6.6 18, about 1,650 for T6 and about 3,100 for the whole feature. Updated PR split: PR 1 = T1 + T2 + T6.1 (pinned data model and list); PR 2 = T3 (Recents management); PR 3 = T6.2 + T6.3 + T6.4 (board, menu, keyboard); PR 4 = T6.5 (drag, the riskiest part, easy to review on its own); PR 5 = T4 + T5 + T6.6 (commands, docs, version bump, merged last). If the maintainer prefers fewer PRs, merge PR 3 and PR 4.
 - T6 final checks on HEAD: `node --check main.js` ok; `node --test tests/*.test.cjs` 267 pass / 0 fail (135 before 1.2, 197 after T5); `git diff --check` clean. Not verifiable without a real Obsidian: the look of the cards in real themes (tint, shadow, fold, tilt), the Color submenu and `Menu.setSubmenu` on 1.8.7, touch behavior (long press, `touchmove` preventDefault vs page scroll, pointer capture), the feel of the FLIP animation, screen-reader output of the live region, and auto-scroll when dragging near the edge of the pane (not implemented). Decisions made here beyond the brief: unpin ✕ on cards (none existed before), long press released without moving opens the card menu on touch, `Alt+↑/↓` move one place (no row jump).
+- T7 planned (this section), before any T7 code.
