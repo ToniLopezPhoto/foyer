@@ -603,10 +603,8 @@ class HomeView extends ItemView {
     const help = search.createDiv('foyer__help');
     this.helpEl = help;
 
-    // Recientes
+    // Fijadas y recientes: un único listbox; los encabezados de sección van dentro (renderRecent)
     const recent = this.wrapEl.createDiv('foyer__recent');
-    this.recentLabelEl = recent.createDiv('foyer__section-head')
-      .createSpan({ cls: 'foyer__label' });
     this.recentEl = recent.createDiv({ cls: 'foyer__list', attr: { role: 'listbox', id: `${this.uid}-recent` } });
 
     // Eventos
@@ -650,8 +648,6 @@ class HomeView extends ItemView {
     this.refreshHeader();
     this.inputEl.placeholder = strings.searchPlaceholder;
     this.inputEl.setAttribute('aria-label', strings.searchLabel);
-    this.recentLabelEl.setText(strings.recent);
-    this.recentEl.setAttribute('aria-label', strings.recent);
     this.resultsEl.setAttribute('aria-label', strings.searchLabel);
     const mod = Platform.isMacOS ? '⌘' : 'Ctrl';
     this.helpEl.empty();
@@ -694,14 +690,15 @@ class HomeView extends ItemView {
     }, 40);
   }
 
-  /* ── Recientes ── */
-  // Primeros `limit` archivos de `paths` que existen, se listan y no están excluidos (sin repetir rutas).
-  resolveRecent(paths, limit) {
+  /* ── Fijadas y recientes ── */
+  // Primeros `limit` archivos de `paths` que existen, se listan y no están excluidos (sin repetir rutas
+  // ni las de `skip`).
+  resolveRecent(paths, limit, skip = null) {
     const out = [];
     const seen = new Set();
     for (const path of paths) {
       const file = this.app.vault.getAbstractFileByPath(path);
-      if (!isListed(file) || seen.has(file.path) || this.isExcluded(file)) continue;
+      if (!isListed(file) || seen.has(file.path) || skip?.has(file.path) || this.isExcluded(file)) continue;
       seen.add(file.path);
       out.push(file);
       if (out.length >= limit) break;
@@ -709,14 +706,22 @@ class HomeView extends ItemView {
     return out;
   }
 
-  // Historial propio del plugin, del más reciente al más antiguo; si no da ningún archivo,
-  // la lista corta de Obsidian (getLastOpenFiles).
+  // Notas fijadas, en el orden en que se fijaron. Las que no existen, no se listan o están excluidas
+  // no se muestran, pero tampoco se quitan del ajuste: puede que otro dispositivo aún no las haya sincronizado.
+  getPinnedFiles() {
+    return this.resolveRecent(this.plugin.settings.pinned ?? [], Infinity);
+  }
+
+  // Historial propio del plugin, del más reciente al más antiguo, sin las notas fijadas (el límite se
+  // aplica a lo que queda); si el historial no da ningún archivo, la lista corta de Obsidian (getLastOpenFiles).
   getRecentFiles() {
     const limit = this.plugin.settings.recentLimit;
+    const pinned = new Set(this.plugin.settings.pinned ?? []);
     const history = this.plugin.openHistory || {};
     const byRecency = Object.keys(history).sort((a, b) => history[b] - history[a]);
-    const files = this.resolveRecent(byRecency, limit);
-    return files.length ? files : this.resolveRecent(this.app.workspace.getLastOpenFiles(), limit);
+    // El respaldo de Obsidian solo entra si el historial no tiene ningún archivo, aunque estén todos fijados.
+    if (this.resolveRecent(byRecency, 1).length) return this.resolveRecent(byRecency, limit, pinned);
+    return this.resolveRecent(this.app.workspace.getLastOpenFiles(), limit, pinned);
   }
 
   renderRecent() {
@@ -726,32 +731,41 @@ class HomeView extends ItemView {
     this.recentItems = [];
     if (!this.hasQuery) this.selected = -1; // las filas son nuevas: no queda ninguna seleccionada
 
-    const files = this.getRecentFiles();
-    if (!files.length) {
-      this.syncAria();
-      this.recentEl.createDiv({
-        cls: 'foyer__empty',
-        text: STRINGS[this.plugin.getEffectiveLanguage()].emptyRecent,
-      });
-      return;
-    }
+    const strings = STRINGS[this.plugin.getEffectiveLanguage()];
+    const pinned = this.getPinnedFiles();
+    const recent = this.getRecentFiles();
+    this.recentEl.setAttribute('aria-label', pinned.length ? `${strings.pinned}, ${strings.recent}` : strings.recent);
 
-    for (const file of files) {
-      const row = this.recentEl.createDiv({ cls: 'foyer__row', attr: { title: file.path } });
-      this.addItem(this.recentItems, row, (mode) => this.openFile(file, mode), file);
-      setIcon(row.createSpan('foyer__row-icon'), iconFor(file));
-
-      const main = row.createDiv('foyer__row-main');
-      main.createSpan({ cls: 'foyer__row-title', text: displayName(file) });
-      const folder = folderOf(file);
-      if (folder) main.createSpan({ cls: 'foyer__row-path', text: folder });
-
-      // Hora real de la última apertura (no la de modificación del archivo).
-      const timeEl = row.createSpan({ cls: 'foyer__row-time' });
-      this.recentTimeEls.push({ el: timeEl, path: file.path });
+    if (pinned.length) this.renderSection(strings.pinned, pinned);
+    // Con notas fijadas y nada más en el historial, «Recientes» no se muestra (ni dice que no hay nada).
+    if (recent.length || !pinned.length) this.renderSection(strings.recent, recent);
+    if (!recent.length && !pinned.length) {
+      this.recentEl.createDiv({ cls: 'foyer__empty', text: strings.emptyRecent });
     }
     this.updateRecentTimes();
     this.syncAria();
+  }
+
+  // Encabezado (decorativo: las opciones del listbox siguen siendo solo las filas) y sus filas.
+  renderSection(label, files) {
+    const head = this.recentEl.createDiv({ cls: 'foyer__section-head', attr: { role: 'presentation' } });
+    head.createSpan({ cls: 'foyer__label', text: label });
+    for (const file of files) this.renderRow(file);
+  }
+
+  renderRow(file) {
+    const row = this.recentEl.createDiv({ cls: 'foyer__row', attr: { title: file.path } });
+    this.addItem(this.recentItems, row, (mode) => this.openFile(file, mode), file);
+    setIcon(row.createSpan('foyer__row-icon'), iconFor(file));
+
+    const main = row.createDiv('foyer__row-main');
+    main.createSpan({ cls: 'foyer__row-title', text: displayName(file) });
+    const folder = folderOf(file);
+    if (folder) main.createSpan({ cls: 'foyer__row-path', text: folder });
+
+    // Hora real de la última apertura (no la de modificación del archivo).
+    const timeEl = row.createSpan({ cls: 'foyer__row-time' });
+    this.recentTimeEls.push({ el: timeEl, path: file.path });
   }
 
   updateRecentTimes() {

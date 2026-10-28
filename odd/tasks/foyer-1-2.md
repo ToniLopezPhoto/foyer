@@ -64,11 +64,11 @@ Route note: the writer trigger (2+ non-trivial files) would fire for T3; I kept 
 - Acceptance: pinned notes sync through `data.json`, history untouched, strings in both languages.
 
 ### T2 — Pinned section in the view
-- [ ] RED: with pinned notes, the listbox shows a "Pinned" heading and rows above "Recent"; hidden when empty.
-- [ ] RED: pinned notes do not appear again in Recent and the Recent limit still applies to Recent.
-- [ ] RED: ↑/↓ with an empty search box walk Pinned then Recent as one list; ARIA ids stay unique and `aria-activedescendant` follows.
-- [ ] RED: Enter opens a selected pinned row; the view refreshes when pinned changes.
-- [ ] GREEN: `getPinnedFiles`, `renderRecent` renders both sections into `recentEl`; CSS for the heading; existing test helpers adapted to ignore headings.
+- [x] RED: with pinned notes, the listbox shows a "Pinned" heading and rows above "Recent"; hidden when empty.
+- [x] RED: pinned notes do not appear again in Recent and the Recent limit still applies to Recent.
+- [x] RED: ↑/↓ with an empty search box walk Pinned then Recent as one list; ARIA ids stay unique and `aria-activedescendant` follows.
+- [x] RED: Enter opens a selected pinned row; the view refreshes when pinned changes.
+- [x] GREEN: `getPinnedFiles`, `renderRecent` renders both sections into `recentEl`; CSS for the heading; existing test helpers adapted to ignore headings.
 - Acceptance: existing recents-keyboard and settings tests stay green without behavior edits.
 
 ### T3 — Recents management
@@ -93,3 +93,4 @@ Route note: the writer trigger (2+ non-trivial files) would fire for T3; I kept 
 
 - Plan written before any code. Branch starts from `af603dc`.
 - T1 done. RED: new `tests/pinned.test.cjs` (22 tests) against the old `main.js`: 4 pass (vacuous) / 18 fail (full suite 139 pass / 18 fail). GREEN: full suite 157 pass / 0 fail; `node --check main.js` ok; `git diff --check` clean. Refactor: `renameInPinned` rewritten as a plain loop. Note: the vault `rename`/`delete` handlers now also persist `pinned` through `updateSetting` (they became async).
+- T2 done. RED: new `tests/pinned-view.test.cjs` (18 tests) + `tests/support/view-fixture.cjs` against the old view: 1 pass / 17 fail (full suite 158 pass / 17 fail). GREEN after `renderRecent` / `renderSection` / `renderRow`: 16 older recents tests failed only because `recentRows` took every child of the listbox; the helper in `tests/recents-keyboard.test.cjs` now keeps `role="option"` children (headings moved inside the listbox) with no assertion changed. Full suite 175 pass / 0 fail; `node --check main.js` ok; `git diff --check` clean. Decision implemented: the Obsidian fallback only kicks in when the history resolves to no file at all, even if all of it is pinned.

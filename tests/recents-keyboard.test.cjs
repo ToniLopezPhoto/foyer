@@ -52,7 +52,8 @@ async function createFixture({
   return { main, view, files, opened, hoverEvents, leafCalls };
 }
 
-const recentRows = (fixture) => fixture.view.recentEl.children;
+// The listbox also holds the section headings (presentational): the rows are its options.
+const recentRows = (fixture) => fixture.view.recentEl.children.filter((el) => el.attributes.role === 'option');
 const recentTitles = (fixture) => recentRows(fixture).map((row) => row.children[1].children[0].text);
 const key = (name, extra = {}) => ({ key: name, preventDefault() {}, ...extra });
 const selectedRows = (fixture) => recentRows(fixture).filter((row) => row.classes.has('is-selected'));

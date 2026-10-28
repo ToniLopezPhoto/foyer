@@ -470,6 +470,10 @@
   height: 1px;
   background: var(--background-modifier-border);
 }
+/* Segunda sección dentro del mismo listbox (Recientes bajo Fijadas) */
+.foyer__row + .foyer__section-head {
+  margin-top: 1.8em;
+}
 .foyer__label {
   font-family: var(--font-interface);
   font-size: 0.6em;
