@@ -1182,6 +1182,21 @@ class HomeView extends ItemView {
     return true;
   }
 
+  // Alt + P: fija la nota seleccionada de «Recientes» (una P suelta se escribiría en el buscador). Pasa al tablero
+  // y la selección queda en la fila que ocupa su lugar, para poder seguir fijando hacia abajo.
+  pinSelectedRecent(e) {
+    const item = this.recentItems[this.selected];
+    if (this.hasQuery || this.inputEl.value || !this.pinsShown || !item?.removePath) return false;
+    e.preventDefault();
+    if (this.pendingMove) return true;
+    const keep = this.selected;
+    this.pendingMove = Promise.resolve(this.plugin.pinFile(item.removePath))
+      // la tarjeta nueva ocupa un puesto antes de las filas: la siguiente fila queda en el índice anterior + 1
+      .then(() => { if (this.recentItems.length) this.select(Math.min(keep + 1, this.recentItems.length - 1)); })
+      .finally(() => { this.pendingMove = null; });
+    return true;
+  }
+
   // Guarda el orden nuevo; al repintar, la tarjeta movida sigue seleccionada y se anuncia su posición.
   async commitOrder(paths, title, index) {
     await this.plugin.reorderPinned(paths);
@@ -1474,6 +1489,8 @@ class HomeView extends ItemView {
   onKeyDown(e) {
     if (e.isComposing) return;
     if (e.altKey && ARROW_KEYS.has(e.key) && this.moveSelectedCard(e)) return;
+    // Se mira `code` y no `key`: con Alt, en macOS la P escribe otro carácter
+    if (e.altKey && e.code === 'KeyP' && this.pinSelectedRecent(e)) return;
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();

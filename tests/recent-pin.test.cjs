@@ -80,3 +80,72 @@ test('the pin button is styled like the remove button and the row has room for i
   assert.match(css, /\.foyer__row\.is-selected \.foyer__row-pin/);
   assert.match(css, /\.is-mobile \.foyer__row-pin/);
 });
+
+/* ── From the keyboard: Alt+P ── */
+const key = (name, extra = {}) => ({ key: name, preventDefault() {}, ...extra });
+const altP = (extra = {}) => key('p', { altKey: true, code: 'KeyP', ...extra });
+const selectedTitle = (fixture) => {
+  const row = optionRowsOf(fixture).find((el) => el.classes.has('is-selected'));
+  return row ? rowTitle(row) : null;
+};
+const optionRowsOf = (fixture) => fixture.view.recentItems.map((item) => item.el);
+
+async function pressAltP(fixture, event) {
+  fixture.view.onKeyDown(event);
+  await fixture.view.pendingMove;
+}
+
+test('Alt+P pins the selected Recent row and moves the selection to the next one', async () => {
+  const fixture = await setup();
+  fixture.view.onKeyDown(key('ArrowDown'));
+  fixture.view.onKeyDown(key('ArrowDown')); // B
+  let prevented = 0;
+  await pressAltP(fixture, altP({ preventDefault: () => { prevented += 1; } }));
+  assert.equal(prevented, 1);
+  assert.deepEqual(fixture.pinnedNow, ['B.md']);
+  assert.deepEqual(sections(fixture.view), [
+    { head: 'Pinned', rows: ['B'] },
+    { head: 'Recent', rows: ['A', 'C'] },
+  ]);
+  assert.equal(selectedTitle(fixture), 'C');
+  assert.equal(fixture.view.inputEl.attributes['aria-activedescendant'], fixture.view.recentItems[fixture.view.selected].el.attributes.id);
+});
+
+test('Alt+P works when the key produces another character (macOS) because it reads the key code', async () => {
+  const fixture = await setup();
+  fixture.view.onKeyDown(key('ArrowDown'));
+  await pressAltP(fixture, key('π', { altKey: true, code: 'KeyP' }));
+  assert.deepEqual(fixture.pinnedNow, ['A.md']);
+});
+
+test('a plain P, or Alt with another key, pins nothing', async () => {
+  const fixture = await setup();
+  fixture.view.onKeyDown(key('ArrowDown'));
+  await pressAltP(fixture, key('p', { code: 'KeyP' }));
+  await pressAltP(fixture, key('o', { altKey: true, code: 'KeyO' }));
+  assert.deepEqual(fixture.pinnedNow, []);
+});
+
+test('Alt+P does nothing with no selection, on a pinned card, while searching or with pins hidden', async () => {
+  const none = await setup();
+  let prevented = 0;
+  await pressAltP(none, altP({ preventDefault: () => { prevented += 1; } }));
+  assert.equal(prevented, 0);
+  assert.deepEqual(none.pinnedNow, []);
+
+  const card = await setup({ pinned: ['A.md'] });
+  card.view.onKeyDown(key('ArrowDown')); // the card
+  await pressAltP(card, altP());
+  assert.deepEqual(card.pinnedNow, []);
+
+  const searching = await setup();
+  searching.view.onKeyDown(key('ArrowDown'));
+  searching.view.inputEl.value = 'a';
+  await pressAltP(searching, altP());
+  assert.deepEqual(searching.pinnedNow, []);
+
+  const hidden = await setup({ settings: { showPinned: false } });
+  hidden.view.onKeyDown(key('ArrowDown'));
+  await pressAltP(hidden, altP());
+  assert.deepEqual(hidden.pinnedNow, []);
+});
