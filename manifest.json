@@ -1,7 +1,7 @@
 {
   "id": "foyer",
   "name": "Foyer",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "minAppVersion": "1.8.7",
   "description": "Turn every new tab into a calm home page: instant fuzzy search, recently opened notes, and a personal greeting. Private and offline.",
   "author": "Toni López",

@@ -18,6 +18,12 @@ const DEFAULT_SETTINGS = Object.freeze({
   replaceNewTab: true,   // las pestañas nuevas vacías muestran el inicio
   recentLimit: 8,        // notas en «Recientes»
   resultLimit: 7,        // resultados de búsqueda visibles
+  pinned: Object.freeze([]), // notas fijadas [{ path, color }]; viven en data.json y se sincronizan
+  showGreeting: true,    // fecha, saludo e imagen de cabecera
+  showSearch: true,      // buscador
+  showPinned: true,      // tablero de notas fijadas
+  showRecent: true,      // lista de «Recientes»
+  layout: 'stacked',     // fijadas y recientes: 'stacked' (una debajo de otra) o 'columns' (dos columnas)
 });
 
 const LIMIT_MIN = 3;
@@ -25,6 +31,8 @@ const LIMIT_MAX = 20;
 
 const HERO_IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'avif', 'bmp']);
 const OPEN_HISTORY_LIMIT = 200;
+// Colores de las notas fijadas: los de la paleta del tema (--color-<nombre>); «sin color» es la cadena vacía.
+const PIN_COLORS = Object.freeze(['yellow', 'orange', 'red', 'purple', 'blue', 'cyan', 'green', 'pink']);
 const OPEN_HISTORY_KEY = 'foyer-open-history';
 
 const STRINGS = {
@@ -35,12 +43,33 @@ const STRINGS = {
     searchLabel: 'Buscar notas',
     keyboardHelp: ['↑↓ moverse', '↵ abrir', (mod) => `${mod} ↵ nueva pestaña`, '⇧ ↵ buscar en contenido'],
     recent: 'Recientes',
+    pinned: 'Fijadas',
     emptyRecent: 'Todavía no has abierto ninguna nota.',
     searchContent: (query) => `Buscar «${query}» en el contenido`,
     createNote: (query) => `Crear nota «${query}»`,
     globalSearchUnavailable: 'La búsqueda global no está disponible.',
     createNoteFailed: 'No se pudo crear la nota.',
     openHome: 'Abrir inicio',
+    commandFocusSearch: 'Enfocar la búsqueda de Foyer',
+    commandOpenNewTab: 'Abrir Foyer en una pestaña nueva',
+    commandPinCurrent: 'Fijar nota actual en Foyer',
+    commandUnpinCurrent: 'Quitar nota actual de Foyer',
+    pinToFoyer: 'Fijar en Foyer',
+    unpinFromFoyer: 'Quitar de Foyer',
+    cardOpen: 'Abrir',
+    cardOpenNewTab: 'Abrir en una pestaña nueva',
+    cardColor: 'Color',
+    cardMoved: (title, position, total) => `${title}: posición ${position} de ${total}`,
+    pinColors: {
+      none: 'Sin color', yellow: 'Amarillo', orange: 'Naranja', red: 'Rojo', purple: 'Morado',
+      blue: 'Azul', cyan: 'Cian', green: 'Verde', pink: 'Rosa',
+    },
+    removeFromRecent: 'Quitar de Recientes',
+    commandClearHistory: 'Borrar historial de Recientes',
+    historyCleared: 'Historial de Recientes borrado.',
+    settingsClearHistory: 'Borrar historial de Recientes',
+    settingsClearHistoryDescription: 'Vacía la lista de notas abiertas recientemente en este dispositivo. Tus notas y las notas fijadas no se tocan.',
+    clearHistoryButton: 'Borrar',
     settingsName: 'Nombre del saludo',
     settingsNameDescription: 'Deja el campo vacío para mostrar el saludo sin nombre.',
     settingsLanguage: 'Idioma',
@@ -52,6 +81,20 @@ const STRINGS = {
     settingsOpenOnStartupDescription: 'Muestra el inicio al arrancar Obsidian. El cambio se aplica la próxima vez que abras Obsidian.',
     settingsReplaceNewTab: 'Reemplazar pestañas nuevas',
     settingsReplaceNewTabDescription: 'Las pestañas nuevas vacías muestran el inicio. Desactívalo si usas otro plugin de página de inicio.',
+    allHidden: 'Todo está oculto. Vuelve a activar alguna sección en los ajustes de Foyer.',
+    searchHiddenNotice: 'El buscador está oculto. Actívalo en los ajustes de Foyer.',
+    settingsShowGreeting: 'Mostrar el saludo',
+    settingsShowGreetingDescription: 'La fecha, el saludo y la imagen de cabecera.',
+    settingsShowSearch: 'Mostrar el buscador',
+    settingsShowSearchDescription: 'Sin buscador las notas se siguen pudiendo abrir con el ratón o el dedo, pero no hay búsqueda ni navegación con el teclado.',
+    settingsShowPinned: 'Mostrar las notas fijadas',
+    settingsShowPinnedDescription: 'El tablero de notas fijadas. Si lo ocultas no se pierde nada: las notas fijadas vuelven a salir en «Recientes».',
+    settingsShowRecent: 'Mostrar las notas recientes',
+    settingsShowRecentDescription: 'La lista de notas abiertas recientemente.',
+    settingsLayout: 'Distribución de fijadas y recientes',
+    settingsLayoutDescription: 'Una debajo de otra, o en dos columnas (fijadas a la izquierda y recientes a la derecha). En paneles estrechos siempre se usa una sola columna.',
+    layoutStacked: 'Una debajo de otra',
+    layoutColumns: 'Dos columnas',
     settingsRecentLimit: 'Notas recientes',
     settingsRecentLimitDescription: 'Cuántas notas se muestran en «Recientes» (de 3 a 20).',
     settingsResultLimit: 'Resultados de búsqueda',
@@ -72,7 +115,7 @@ const STRINGS = {
     infoPoints: [
       ['layout-template', 'En la cabecera de la página de inicio, justo encima de la fecha y el saludo.'],
       ['crop', 'Se recorta automáticamente para encajar (máx. 280 × 180 px, esquinas redondeadas). Funcionan mejor las imágenes horizontales.'],
-      ['sparkles', 'Sin imagen, se muestra el destello con el color de acento del tema.'],
+      ['door-open', 'Sin imagen, se muestra la marca de Foyer con el color de acento del tema.'],
     ],
     infoCurrent: 'Imagen actual:',
   },
@@ -83,12 +126,33 @@ const STRINGS = {
     searchLabel: 'Search notes',
     keyboardHelp: ['↑↓ navigate', '↵ open', (mod) => `${mod} ↵ new tab`, '⇧ ↵ search content'],
     recent: 'Recent',
+    pinned: 'Pinned',
     emptyRecent: 'You have not opened any notes yet.',
     searchContent: (query) => `Search “${query}” in content`,
     createNote: (query) => `Create note “${query}”`,
     globalSearchUnavailable: 'Global search is unavailable.',
     createNoteFailed: 'Could not create the note.',
     openHome: 'Open home',
+    commandFocusSearch: 'Focus Foyer search',
+    commandOpenNewTab: 'Open Foyer in a new tab',
+    commandPinCurrent: 'Pin current note to Foyer',
+    commandUnpinCurrent: 'Unpin current note from Foyer',
+    pinToFoyer: 'Pin to Foyer',
+    unpinFromFoyer: 'Unpin from Foyer',
+    cardOpen: 'Open',
+    cardOpenNewTab: 'Open in new tab',
+    cardColor: 'Color',
+    cardMoved: (title, position, total) => `${title} moved to position ${position} of ${total}`,
+    pinColors: {
+      none: 'No color', yellow: 'Yellow', orange: 'Orange', red: 'Red', purple: 'Purple',
+      blue: 'Blue', cyan: 'Cyan', green: 'Green', pink: 'Pink',
+    },
+    removeFromRecent: 'Remove from Recent',
+    commandClearHistory: 'Clear Recent history',
+    historyCleared: 'Recent history cleared.',
+    settingsClearHistory: 'Clear Recent history',
+    settingsClearHistoryDescription: 'Empties the list of recently opened notes on this device. Your notes and pinned notes are not touched.',
+    clearHistoryButton: 'Clear',
     settingsName: 'Greeting name',
     settingsNameDescription: 'Leave this blank to show the greeting without a name.',
     settingsLanguage: 'Language',
@@ -100,6 +164,20 @@ const STRINGS = {
     settingsOpenOnStartupDescription: 'Show the home page when Obsidian starts. Takes effect the next time you start Obsidian.',
     settingsReplaceNewTab: 'Replace new tabs',
     settingsReplaceNewTabDescription: 'Empty new tabs show the home page. Turn this off if you use another home-page plugin.',
+    allHidden: 'Everything on this page is hidden. Turn a section back on in Foyer’s settings.',
+    searchHiddenNotice: 'The search box is hidden. Turn it on in Foyer’s settings.',
+    settingsShowGreeting: 'Show greeting',
+    settingsShowGreetingDescription: 'The date, the greeting and the hero image.',
+    settingsShowSearch: 'Show search box',
+    settingsShowSearchDescription: 'Without it you can still open notes with the mouse or your finger, but there is no search and no keyboard navigation.',
+    settingsShowPinned: 'Show pinned notes',
+    settingsShowPinnedDescription: 'The board of pinned notes. Hiding it loses nothing: pinned notes show up in Recent again.',
+    settingsShowRecent: 'Show recent notes',
+    settingsShowRecentDescription: 'The list of recently opened notes.',
+    settingsLayout: 'Pinned and Recent layout',
+    settingsLayoutDescription: 'One below the other, or in two columns (pinned on the left, recent on the right). Narrow panes always use one column.',
+    layoutStacked: 'One below the other',
+    layoutColumns: 'Two columns',
     settingsRecentLimit: 'Recent notes',
     settingsRecentLimitDescription: 'How many notes appear under Recent (3 to 20).',
     settingsResultLimit: 'Search results',
@@ -120,7 +198,7 @@ const STRINGS = {
     infoPoints: [
       ['layout-template', 'In the header of the home page, right above the date and greeting.'],
       ['crop', 'It is cropped automatically to fit (max. 280 × 180 px, rounded corners). Landscape images work best.'],
-      ['sparkles', 'Without an image, the spark in the theme accent color is shown.'],
+      ['door-open', 'Without an image, the Foyer mark in the theme accent color is shown.'],
     ],
     infoCurrent: 'Current image:',
   },
@@ -141,6 +219,22 @@ function normalizeLimit(value, fallback) {
   return Math.min(LIMIT_MAX, Math.max(LIMIT_MIN, Math.round(value)));
 }
 
+// Notas fijadas como [{ path, color }]. Acepta también la lista de rutas de las primeras versiones de 1.2.
+// Se descartan las entradas sin ruta válida y las rutas repetidas (gana la primera); un color desconocido es «sin color».
+function normalizePinned(value) {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set();
+  const out = [];
+  for (const entry of value) {
+    const object = entry && typeof entry === 'object' && !Array.isArray(entry);
+    const path = typeof entry === 'string' ? entry : object ? entry.path : null;
+    if (typeof path !== 'string' || !path || seen.has(path)) continue;
+    seen.add(path);
+    out.push({ path, color: object && PIN_COLORS.includes(entry.color) ? entry.color : '' });
+  }
+  return out;
+}
+
 function normalizeToggle(value, fallback) {
   return typeof value === 'boolean' ? value : fallback;
 }
@@ -157,6 +251,12 @@ function normalizeSettings(data) {
     replaceNewTab: normalizeToggle(source.replaceNewTab, DEFAULT_SETTINGS.replaceNewTab),
     recentLimit: normalizeLimit(source.recentLimit, DEFAULT_SETTINGS.recentLimit),
     resultLimit: normalizeLimit(source.resultLimit, DEFAULT_SETTINGS.resultLimit),
+    pinned: normalizePinned(source.pinned),
+    showGreeting: normalizeToggle(source.showGreeting, DEFAULT_SETTINGS.showGreeting),
+    showSearch: normalizeToggle(source.showSearch, DEFAULT_SETTINGS.showSearch),
+    showPinned: normalizeToggle(source.showPinned, DEFAULT_SETTINGS.showPinned),
+    showRecent: normalizeToggle(source.showRecent, DEFAULT_SETTINGS.showRecent),
+    layout: ['stacked', 'columns'].includes(source.layout) ? source.layout : DEFAULT_SETTINGS.layout,
   };
 }
 
@@ -234,6 +334,56 @@ function deleteFromHistory(history, removedPath) {
     }
   }
   return changed;
+}
+
+// Rutas fijadas tras renombrar un archivo o una carpeta; devuelve la lista nueva o null si nada cambia.
+function renameInPinned(pinned, oldPath, newPath) {
+  let changed = false;
+  const next = pinned.map((entry) => {
+    let moved = null;
+    if (entry.path === oldPath) moved = newPath;
+    else if (entry.path.startsWith(`${oldPath}/`)) moved = newPath + entry.path.slice(oldPath.length);
+    if (moved === null) return entry;
+    changed = true;
+    return { ...entry, path: moved };
+  });
+  return changed ? normalizePinned(next) : null;
+}
+
+// Rutas fijadas tras borrar un archivo o una carpeta; devuelve la lista nueva o null si nada cambia.
+function deleteFromPinned(pinned, removedPath) {
+  const next = pinned.filter((entry) => entry.path !== removedPath && !entry.path.startsWith(`${removedPath}/`));
+  return next.length === pinned.length ? null : next;
+}
+
+// Nuevo orden de las fijadas. `order` son las rutas que se ven, en su orden nuevo: ocupan los mismos huecos
+// que tenían y las demás entradas (todavía sin sincronizar, excluidas...) no se mueven. null si nada cambia.
+function reorderPinned(pinned, order) {
+  const byPath = new Map(pinned.map((entry) => [entry.path, entry]));
+  const wanted = [...new Set(order)].filter((path) => byPath.has(path));
+  if (wanted.length < 2) return null;
+  const slots = new Set(wanted);
+  let next = 0;
+  let changed = false;
+  const result = pinned.map((entry) => {
+    if (!slots.has(entry.path)) return entry;
+    const moved = byPath.get(wanted[next++]);
+    if (moved !== entry) changed = true;
+    return moved;
+  });
+  return changed ? result : null;
+}
+
+// Inclinación fija de una tarjeta, de 1 a 2 grados hacia un lado u otro, según un hash (FNV-1a) de la ruta:
+// la misma nota se inclina igual en cada pintado y en cada dispositivo.
+function cardTilt(path) {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < path.length; i++) {
+    hash ^= path.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  const degrees = 1 + ((hash >>> 8) % 101) / 100;
+  return hash & 1 ? degrees : -degrees;
 }
 
 function isSafeHeroFileName(name) {
@@ -339,6 +489,7 @@ module.exports = {
   DEFAULT_SETTINGS,
   LIMIT_MIN,
   LIMIT_MAX,
+  PIN_COLORS,
   STRINGS,
   normalizeSettings,
   loadSettings,
@@ -357,6 +508,10 @@ module.exports = {
   recordOpen,
   renameInHistory,
   deleteFromHistory,
+  renameInPinned,
+  deleteFromPinned,
+  reorderPinned,
+  cardTilt,
   isSafeHeroFileName,
   sanitizeFileName,
 };
@@ -371,6 +526,7 @@ const {
   TFile,
   Keymap,
   Notice,
+  Menu,
   Platform,
   prepareFuzzySearch,
   renderMatches,
@@ -398,11 +554,22 @@ const {
   recordOpen,
   renameInHistory,
   deleteFromHistory,
+  renameInPinned,
+  deleteFromPinned,
+  reorderPinned,
+  cardTilt,
+  PIN_COLORS,
   isSafeHeroFileName,
   sanitizeFileName,
 } = homeSettingsModule.exports;
 
 const VIEW_TYPE = 'foyer';
+const ARROW_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']);
+// Arrastre de tarjetas: pulsación larga en táctil, distancia mínima (px) para empezar o para cancelar por desplazamiento
+const LONG_PRESS_MS = 300;
+const MOUSE_DRAG_SLOP = 4;
+const TOUCH_SCROLL_SLOP = 10;
+const FLIP_MS = 180;
 let viewCounter = 0; // para que los ids ARIA de cada vista sean únicos
 
 // Ocultar temporales de Syncthing, dotfiles y .tmp
@@ -472,30 +639,16 @@ function iconFor(file) {
   return ICONS[file.extension] || 'file';
 }
 
-// Pequeño destello radial, en el color de acento del tema
-function buildSpark() {
+// Marca de Foyer (el arco de assets/foyer-mark.svg, sin el fondo), en el color de acento del tema
+function buildMark() {
   const svg = createSvg('svg', {
-    attr: {
-      viewBox: '0 0 24 24',
-      fill: 'none',
-      stroke: 'currentColor',
-      'stroke-width': '1.8',
-      'stroke-linecap': 'round',
-    },
+    attr: { viewBox: '40 40 176 168', fill: 'none', stroke: 'currentColor', 'aria-hidden': 'true' },
   });
-  for (let i = 0; i < 12; i++) {
-    const a = (i * Math.PI) / 6;
-    const r1 = 2.6;
-    const r2 = i % 2 ? 7.4 : 10.4;
-    svg.createSvg('line', {
-      attr: {
-        x1: (12 + r1 * Math.cos(a)).toFixed(2),
-        y1: (12 + r1 * Math.sin(a)).toFixed(2),
-        x2: (12 + r2 * Math.cos(a)).toFixed(2),
-        y2: (12 + r2 * Math.sin(a)).toFixed(2),
-      },
-    });
-  }
+  // Arco exterior, puerta, luz interior y umbral
+  svg.createSvg('path', { attr: { d: 'M57 204V114A71 71 0 0 1 199 114V204', 'stroke-width': '8', 'stroke-opacity': '0.45' } });
+  svg.createSvg('path', { attr: { d: 'M86 204V117A42 42 0 0 1 170 117V204Z', 'stroke-width': '8', fill: 'currentColor', 'fill-opacity': '0.12' } });
+  svg.createSvg('path', { attr: { d: 'M109 204V131A19 19 0 0 1 147 131V204Z', stroke: 'none', fill: 'currentColor' } });
+  svg.createSvg('path', { attr: { d: 'M44 204H212', 'stroke-width': '8', 'stroke-linecap': 'round' } });
   return svg;
 }
 
@@ -513,6 +666,9 @@ class HomeView extends ItemView {
     this.listedEntries = null; // caché de archivos listados: { file, name, aliases }, en el orden de vault.getFiles()
     this.searchState = null; // { query, pool }: candidatos de la última búsqueda para acotar la siguiente
     this.pendingSearch = null; // { cancel }: búsqueda programada para el próximo frame
+    this.drag = null; // arrastre de una tarjeta en curso (ver onCardPointerDown)
+    this.renderPending = false; // se pidió pintar «Recientes» durante un arrastre
+    this.suppressClick = false; // el clic que cierra un arrastre no debe abrir la nota
     this.refreshRecentSoon = debounce(() => this.renderRecent(), 150, true);
   }
 
@@ -526,11 +682,17 @@ class HomeView extends ItemView {
     root.addClass('foyer');
 
     this.wrapEl = root.createDiv('foyer__wrap');
+    // Anuncia a los lectores de pantalla el resultado de mover una tarjeta (fuera del listbox)
+    this.liveEl = root.createDiv({
+      cls: 'foyer__live',
+      attr: { role: 'status', 'aria-live': 'polite', 'aria-atomic': 'true' },
+    });
 
     // Cabecera
     const hero = this.wrapEl.createDiv('foyer__hero');
+    this.heroEl = hero;
     this.sparkEl = hero.createDiv('foyer__spark');
-    this.sparkEl.appendChild(buildSpark());
+    this.sparkEl.appendChild(buildMark());
     this.heroImageEl = hero.createEl('img', { cls: 'foyer__image', attr: { alt: '' } });
     this.heroImageEl.hidden = true;
     this.registerDomEvent(this.heroImageEl, 'error', () => this.showSpark());
@@ -539,6 +701,7 @@ class HomeView extends ItemView {
 
     // Búsqueda
     const search = this.wrapEl.createDiv('foyer__search');
+    this.searchEl = search;
     const box = search.createDiv('foyer__box');
     setIcon(box.createSpan('foyer__search-icon'), 'search');
     this.inputEl = box.createEl('input', {
@@ -561,15 +724,26 @@ class HomeView extends ItemView {
     const help = search.createDiv('foyer__help');
     this.helpEl = help;
 
-    // Recientes
+    // Fijadas y recientes: un único listbox; los encabezados de sección van dentro (renderRecent)
     const recent = this.wrapEl.createDiv('foyer__recent');
-    this.recentLabelEl = recent.createDiv('foyer__section-head')
-      .createSpan({ cls: 'foyer__label' });
+    this.recentWrapEl = recent;
     this.recentEl = recent.createDiv({ cls: 'foyer__list', attr: { role: 'listbox', id: `${this.uid}-recent` } });
+
+    // Aviso cuando no queda nada visible (ver refresh)
+    this.hintEl = this.wrapEl.createDiv({ cls: 'foyer__hint' });
+    this.hintEl.hidden = true;
 
     // Eventos
     this.registerDomEvent(this.inputEl, 'input', () => this.scheduleSearch());
     this.registerDomEvent(this.inputEl, 'keydown', (e) => this.onKeyDown(e));
+    // Sin buscador, el teclado actúa desde la propia lista (el buscador ya gestiona sus teclas)
+    this.registerDomEvent(root, 'keydown', (e) => {
+      if (e.target !== this.inputEl && this.plugin.settings.showSearch === false) this.onKeyDown(e);
+    });
+    // En táctil, tras la pulsación larga el dedo arrastra la tarjeta: la página no debe desplazarse.
+    this.registerDomEvent(this.recentEl, 'touchmove', (e) => {
+      if (this.drag?.active && e.cancelable) e.preventDefault();
+    }, { passive: false });
 
     const ws = this.app.workspace;
     this.registerEvent(ws.on('file-open', () => this.refreshRecentSoon()));
@@ -598,6 +772,8 @@ class HomeView extends ItemView {
 
   async onClose() {
     this.cancelPendingSearch();
+    if (this.drag) window.clearTimeout(this.drag.timer);
+    this.drag = null;
     this.invalidateSearchCache();
     this.contentEl.empty();
   }
@@ -605,11 +781,29 @@ class HomeView extends ItemView {
   refresh() {
     const language = this.plugin.getEffectiveLanguage();
     const strings = STRINGS[language];
+    // Qué partes del inicio se ven (todas por defecto) y cómo se distribuyen las fijadas y las recientes
+    const { settings } = this.plugin;
+    this.heroEl.hidden = settings.showGreeting === false;
+    this.searchEl.hidden = settings.showSearch === false;
+    this.recentWrapEl.hidden = settings.showPinned === false && settings.showRecent === false;
+    this.wrapEl.toggleClass('is-columns', settings.layout === 'columns');
+    // Sin buscador la lista es lo que recibe el foco y el teclado; lo que se hubiera escrito se descarta
+    if (settings.showSearch === false) {
+      this.recentEl.setAttribute('tabindex', '0');
+      if (this.inputEl.value) {
+        this.inputEl.value = '';
+        this.updateResults();
+      }
+    } else {
+      this.recentEl.removeAttribute('tabindex');
+    }
+    const allHidden = settings.showGreeting === false && settings.showSearch === false
+      && settings.showPinned === false && settings.showRecent === false;
+    this.hintEl.hidden = !allHidden;
+    this.hintEl.setText(strings.allHidden);
     this.refreshHeader();
     this.inputEl.placeholder = strings.searchPlaceholder;
     this.inputEl.setAttribute('aria-label', strings.searchLabel);
-    this.recentLabelEl.setText(strings.recent);
-    this.recentEl.setAttribute('aria-label', strings.recent);
     this.resultsEl.setAttribute('aria-label', strings.searchLabel);
     const mod = Platform.isMacOS ? '⌘' : 'Ctrl';
     this.helpEl.empty();
@@ -648,18 +842,29 @@ class HomeView extends ItemView {
     window.setTimeout(() => {
       if (!this.inputEl) return;
       if (this.app.workspace.getActiveViewOfType(HomeView) !== this) return;
+      if (this.plugin.settings.showSearch === false) {
+        this.focusList(); // sin buscador, el foco va a la lista
+        return;
+      }
       if (document.activeElement !== this.inputEl) this.inputEl.focus();
     }, 40);
   }
 
-  /* ── Recientes ── */
-  // Primeros `limit` archivos de `paths` que existen, se listan y no están excluidos (sin repetir rutas).
-  resolveRecent(paths, limit) {
+  // Sin buscador: el cursor va al listbox y se selecciona la primera tarjeta o fila visible.
+  focusList() {
+    this.recentEl.focus();
+    if (this.selected < 0 && this.recentItems.length) this.select(0);
+  }
+
+  /* ── Fijadas y recientes ── */
+  // Primeros `limit` archivos de `paths` que existen, se listan y no están excluidos (sin repetir rutas
+  // ni las de `skip`).
+  resolveRecent(paths, limit, skip = null) {
     const out = [];
     const seen = new Set();
     for (const path of paths) {
       const file = this.app.vault.getAbstractFileByPath(path);
-      if (!isListed(file) || seen.has(file.path) || this.isExcluded(file)) continue;
+      if (!isListed(file) || seen.has(file.path) || skip?.has(file.path) || this.isExcluded(file)) continue;
       seen.add(file.path);
       out.push(file);
       if (out.length >= limit) break;
@@ -667,49 +872,396 @@ class HomeView extends ItemView {
     return out;
   }
 
-  // Historial propio del plugin, del más reciente al más antiguo; si no da ningún archivo,
-  // la lista corta de Obsidian (getLastOpenFiles).
-  getRecentFiles() {
+  // Notas fijadas, en el orden en que se fijaron. Las que no existen, no se listan o están excluidas
+  // no se muestran, pero tampoco se quitan del ajuste: puede que otro dispositivo aún no las haya sincronizado.
+  getPinnedFiles() {
+    return this.resolveRecent((this.plugin.settings.pinned ?? []).map((entry) => entry.path), Infinity);
+  }
+
+  // Historial propio del plugin, del más reciente al más antiguo, sin las notas fijadas (el límite se
+  // aplica a lo que queda); si el historial no da ningún archivo, la lista corta de Obsidian (getLastOpenFiles).
+  getRecentFiles(excludePinned = true) {
     const limit = this.plugin.settings.recentLimit;
+    const pinned = new Set(excludePinned ? (this.plugin.settings.pinned ?? []).map((entry) => entry.path) : []);
     const history = this.plugin.openHistory || {};
     const byRecency = Object.keys(history).sort((a, b) => history[b] - history[a]);
-    const files = this.resolveRecent(byRecency, limit);
-    return files.length ? files : this.resolveRecent(this.app.workspace.getLastOpenFiles(), limit);
+    // El respaldo de Obsidian solo entra si el historial no tiene ningún archivo, aunque estén todos fijados;
+    // no puede volver a mostrar lo que el usuario quitó o borró de Recientes.
+    if (this.resolveRecent(byRecency, 1).length) return this.resolveRecent(byRecency, limit, pinned);
+    const skip = new Set([...pinned, ...(this.plugin.dismissedRecent ?? [])]);
+    return this.resolveRecent(this.app.workspace.getLastOpenFiles(), limit, skip);
   }
 
   renderRecent() {
     if (!this.recentEl) return;
+    if (this.drag?.active) {
+      // No se repinta mientras se arrastra (se perdería la tarjeta que se mueve): se hará al soltar.
+      this.renderPending = true;
+      return;
+    }
     this.recentEl.empty();
     this.recentTimeEls = [];
     this.recentItems = [];
     if (!this.hasQuery) this.selected = -1; // las filas son nuevas: no queda ninguna seleccionada
 
-    const files = this.getRecentFiles();
-    if (!files.length) {
-      this.syncAria();
-      this.recentEl.createDiv({
-        cls: 'foyer__empty',
-        text: STRINGS[this.plugin.getEffectiveLanguage()].emptyRecent,
-      });
-      return;
-    }
+    const strings = STRINGS[this.plugin.getEffectiveLanguage()];
+    // Cada parte se puede ocultar; con las fijadas ocultas, sus notas vuelven a salir en «Recientes».
+    const { showPinned, showRecent } = this.plugin.settings;
+    this.pinsShown = showPinned !== false;
+    const pinned = this.pinsShown ? this.getPinnedFiles() : [];
+    const recent = showRecent === false ? [] : this.getRecentFiles(this.pinsShown);
+    const label = showRecent === false ? strings.pinned : pinned.length ? `${strings.pinned}, ${strings.recent}` : strings.recent;
+    this.recentEl.setAttribute('aria-label', label);
 
-    for (const file of files) {
-      const row = this.recentEl.createDiv({ cls: 'foyer__row', attr: { title: file.path } });
-      this.addItem(this.recentItems, row, (mode) => this.openFile(file, mode), file);
-      setIcon(row.createSpan('foyer__row-icon'), iconFor(file));
-
-      const main = row.createDiv('foyer__row-main');
-      main.createSpan({ cls: 'foyer__row-title', text: displayName(file) });
-      const folder = folderOf(file);
-      if (folder) main.createSpan({ cls: 'foyer__row-path', text: folder });
-
-      // Hora real de la última apertura (no la de modificación del archivo).
-      const timeEl = row.createSpan({ cls: 'foyer__row-time' });
-      this.recentTimeEls.push({ el: timeEl, path: file.path });
+    if (pinned.length) this.renderBoard(strings.pinned, pinned);
+    // Con notas fijadas y nada más en el historial, «Recientes» no se muestra (ni dice que no hay nada).
+    if (showRecent !== false && (recent.length || !pinned.length)) {
+      const group = this.renderSection(strings.recent, recent, true);
+      if (!pinned.length && !recent.length) group.createDiv({ cls: 'foyer__empty', text: strings.emptyRecent });
     }
     this.updateRecentTimes();
     this.syncAria();
+  }
+
+  // Grupo de «Recientes»: encabezado (decorativo) y filas, que se pueden quitar del historial. Las opciones del
+  // listbox siguen siendo solo las filas; el grupo agrupa para la maquetación (columnas) y para los lectores de pantalla.
+  renderSection(label, files, removable = false) {
+    this.rowsEl = this.recentEl.createDiv({ cls: 'foyer__recent-group', attr: { role: 'group', 'aria-label': label } });
+    const head = this.rowsEl.createDiv({ cls: 'foyer__section-head', attr: { role: 'presentation' } });
+    head.createSpan({ cls: 'foyer__label', text: label });
+    for (const file of files) this.renderRow(file, removable);
+    return this.rowsEl;
+  }
+
+  // Las fijadas son un tablero de tarjetas cuadradas (rejilla adaptable: solo se guarda su orden), sin rótulo
+  // visible; el grupo lleva su nombre para los lectores de pantalla. Las tarjetas son opciones del mismo listbox.
+  renderBoard(label, files) {
+    this.boardEl = this.recentEl.createDiv({ cls: 'foyer__board', attr: { role: 'group', 'aria-label': label } });
+    const colors = new Map(this.plugin.settings.pinned.map((entry) => [entry.path, entry.color]));
+    for (const file of files) this.renderCard(file, colors.get(file.path) || '');
+  }
+
+  // Nota adhesiva: solo el título y la carpeta (nunca se lee el contenido de la nota), con una inclinación
+  // fija según su ruta y, si lo tiene, el color de la paleta del tema.
+  renderCard(file, color) {
+    const card = this.boardEl.createDiv({
+      cls: color ? `foyer__card foyer__card--${color}` : 'foyer__card',
+      attr: { title: file.path },
+    });
+    card.style.setProperty('--foyer-tilt', `${cardTilt(file.path)}deg`);
+    this.addItem(this.recentItems, card, (mode) => this.openFile(file, mode), file);
+    const item = this.recentItems[this.recentItems.length - 1];
+    item.pinPath = file.path;
+    item.pinTitle = displayName(file);
+
+    card.createSpan({ cls: 'foyer__card-fold', attr: { 'aria-hidden': 'true' } });
+    const label = STRINGS[this.plugin.getEffectiveLanguage()].unpinFromFoyer;
+    const unpin = card.createEl('button', {
+      cls: 'foyer__card-unpin',
+      attr: { type: 'button', tabindex: '-1', 'aria-label': label, title: label },
+    });
+    setIcon(unpin, 'x');
+    // Ni el clic ni el arrastre deben llegar a la tarjeta (la abriría o empezaría a moverla).
+    unpin.addEventListener('pointerdown', (e) => e.stopPropagation());
+    unpin.addEventListener('auxclick', (e) => e.stopPropagation());
+    unpin.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.plugin.unpinFile(file.path);
+    });
+    card.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      if (!this.drag) this.showCardMenu(e, file);
+    });
+    card.addEventListener('pointerdown', (e) => this.onCardPointerDown(e, card));
+    card.addEventListener('pointermove', (e) => this.onCardPointerMove(e, card));
+    card.addEventListener('pointerup', (e) => this.onCardPointerUp(e, card));
+    card.addEventListener('pointercancel', (e) => this.onCardPointerCancel(e, card));
+
+    card.createDiv({ cls: 'foyer__card-title', text: displayName(file) });
+    const folder = folderOf(file);
+    if (folder) card.createDiv({ cls: 'foyer__card-path', text: folder });
+  }
+
+  renderRow(file, removable) {
+    const row = this.rowsEl.createDiv({ cls: 'foyer__row', attr: { title: file.path } });
+    this.addItem(this.recentItems, row, (mode) => this.openFile(file, mode), file);
+    const item = this.recentItems[this.recentItems.length - 1];
+    setIcon(row.createSpan('foyer__row-icon'), iconFor(file));
+
+    const main = row.createDiv('foyer__row-main');
+    main.createSpan({ cls: 'foyer__row-title', text: displayName(file) });
+    const folder = folderOf(file);
+    if (folder) main.createSpan({ cls: 'foyer__row-path', text: folder });
+
+    // Hora real de la última apertura (no la de modificación del archivo).
+    const timeEl = row.createSpan({ cls: 'foyer__row-time' });
+    this.recentTimeEls.push({ el: timeEl, path: file.path });
+
+    if (!removable) return;
+    const strings = STRINGS[this.plugin.getEffectiveLanguage()];
+    // Fijar la nota: pasa al tablero de fijadas y deja de salir en Recientes (solo si las fijadas se ven).
+    if (this.pinsShown) this.addRowButton(row, 'foyer__row-pin', 'pin', strings.pinToFoyer, () => this.plugin.pinFile(file.path));
+    // Quitar solo borra la entrada del historial; el archivo no se toca.
+    item.removePath = file.path;
+    this.addRowButton(row, 'foyer__row-remove', 'x', strings.removeFromRecent, () => this.removeRecentAt(this.recentItems.indexOf(item)));
+  }
+
+  // Botón con icono al final de una fila. Sus clics no deben llegar a la fila (la abriría).
+  addRowButton(row, cls, icon, label, run) {
+    const button = row.createEl('button', {
+      cls,
+      attr: { type: 'button', tabindex: '-1', 'aria-label': label, title: label },
+    });
+    setIcon(button, icon);
+    button.addEventListener('click', (e) => {
+      e.stopPropagation();
+      run();
+    });
+    button.addEventListener('auxclick', (e) => e.stopPropagation());
+  }
+
+  /* ── Arrastrar tarjetas ── */
+  // Eventos de puntero, para ratón y táctil. Con ratón el arrastre empieza al mover unos píxeles; en táctil, tras
+  // una pulsación larga (si el dedo se mueve antes es un desplazamiento y no se arrastra). Solo se guarda el orden.
+  onCardPointerDown(e, card) {
+    if (this.drag || this.hasQuery) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    const touch = e.pointerType === 'touch';
+    this.drag = {
+      card,
+      pointerId: e.pointerId,
+      touch,
+      startX: e.clientX,
+      startY: e.clientY,
+      x: e.clientX,
+      y: e.clientY,
+      active: false,
+      moved: false,
+      timer: touch ? window.setTimeout(() => this.startDrag(), LONG_PRESS_MS) : null,
+    };
+  }
+
+  onCardPointerMove(e, card) {
+    const drag = this.drag;
+    if (!drag || drag.card !== card || e.pointerId !== drag.pointerId) return;
+    drag.x = e.clientX;
+    drag.y = e.clientY;
+    if (!drag.active) {
+      const distance = Math.hypot(drag.x - drag.startX, drag.y - drag.startY);
+      if (drag.touch) {
+        if (distance > TOUCH_SCROLL_SLOP) this.dropDragCandidate(); // es un desplazamiento de la página
+        return;
+      }
+      if (distance < MOUSE_DRAG_SLOP) return;
+      this.startDrag();
+    }
+    this.dragTo();
+  }
+
+  onCardPointerUp(e, card) {
+    const drag = this.drag;
+    if (!drag || drag.card !== card || e.pointerId !== drag.pointerId) return;
+    this.endDrag(true);
+  }
+
+  onCardPointerCancel(e, card) {
+    const drag = this.drag;
+    if (!drag || drag.card !== card || e.pointerId !== drag.pointerId) return;
+    this.endDrag(false);
+  }
+
+  // Candidato descartado antes de empezar a arrastrar.
+  dropDragCandidate() {
+    if (!this.drag) return;
+    window.clearTimeout(this.drag.timer);
+    this.drag = null;
+  }
+
+  boardCards() {
+    return this.boardEl.children.filter((child) => child.classes.has('foyer__card'));
+  }
+
+  pathOfCard(card) {
+    return this.recentItems.find((item) => item.el === card)?.pinPath;
+  }
+
+  // Posición de una tarjeta en la rejilla sin contar transformaciones (offset*, relativo al tablero).
+  layoutRect(card) {
+    return { left: card.offsetLeft, top: card.offsetTop, width: card.offsetWidth, height: card.offsetHeight };
+  }
+
+  startDrag() {
+    const drag = this.drag;
+    if (!drag || drag.active) return;
+    window.clearTimeout(drag.timer);
+    drag.active = true;
+    drag.original = this.boardCards().map((card) => this.pathOfCard(card));
+    drag.card.addClass('is-dragging');
+    this.boardEl.addClass('is-reordering');
+    try {
+      drag.card.setPointerCapture?.(drag.pointerId);
+    } catch (_error) {
+      // sin captura, los eventos solo llegan mientras el puntero está sobre la tarjeta
+    }
+    // Punto de la tarjeta por el que se agarró, respecto a su centro
+    const board = this.boardEl.getBoundingClientRect();
+    const rect = this.layoutRect(drag.card);
+    drag.grabX = drag.startX - board.left - (rect.left + rect.width / 2);
+    drag.grabY = drag.startY - board.top - (rect.top + rect.height / 2);
+  }
+
+  // Coloca la tarjeta bajo el puntero y, si éste pasa sobre otra, la mueve a su sitio (las demás se deslizan).
+  dragTo() {
+    const drag = this.drag;
+    if (!drag?.active) return;
+    const board = this.boardEl.getBoundingClientRect();
+    const x = drag.x - board.left;
+    const y = drag.y - board.top;
+    if (Math.hypot(drag.x - drag.startX, drag.y - drag.startY) > MOUSE_DRAG_SLOP) drag.moved = true;
+
+    const cards = this.boardCards();
+    const over = cards.find((card) => {
+      if (card === drag.card) return false;
+      const r = this.layoutRect(card);
+      return x >= r.left && x < r.left + r.width && y >= r.top && y < r.top + r.height;
+    });
+    if (over) this.moveCardTo(drag.card, cards.indexOf(over));
+
+    const rect = this.layoutRect(drag.card);
+    const reduced = Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+    const dx = x - drag.grabX - (rect.left + rect.width / 2);
+    const dy = y - drag.grabY - (rect.top + rect.height / 2);
+    drag.card.style.transform = `translate(${dx}px, ${dy}px)${reduced ? '' : ' scale(1.04)'}`;
+  }
+
+  // Pone `card` en la posición `index` del tablero; las otras tarjetas que cambian de sitio se animan (FLIP).
+  moveCardTo(card, index) {
+    const others = this.boardCards().filter((item) => item !== card);
+    const first = new Map(others.map((item) => [item, this.layoutRect(item)]));
+    this.boardEl.insertBefore(card, others[index] ?? null);
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    for (const item of others) {
+      const before = first.get(item);
+      const after = this.layoutRect(item);
+      const dx = before.left - after.left;
+      const dy = before.top - after.top;
+      if ((!dx && !dy) || typeof item.animate !== 'function') continue;
+      item.getAnimations?.().forEach((animation) => animation.cancel());
+      item.animate([{ translate: `${dx}px ${dy}px` }, { translate: '0px 0px' }], { duration: FLIP_MS, easing: 'ease' });
+    }
+  }
+
+  // Suelta (guarda el orden) o cancela (vuelve a pintar como estaba) un arrastre.
+  endDrag(drop) {
+    const drag = this.drag;
+    this.drag = null;
+    window.clearTimeout(drag.timer);
+    if (drag.active) {
+      drag.card.removeClass('is-dragging');
+      this.boardEl.removeClass('is-reordering');
+      drag.card.style.transform = '';
+      drag.card.releasePointerCapture?.(drag.pointerId);
+      // El clic que sigue al soltar no debe abrir la nota
+      this.suppressClick = true;
+      window.setTimeout(() => { this.suppressClick = false; }, 0);
+
+      const order = this.boardCards().map((card) => this.pathOfCard(card));
+      const title = this.recentItems.find((item) => item.el === drag.card)?.pinTitle;
+      if (drop && order.join('\n') !== drag.original.join('\n')) {
+        const index = order.indexOf(this.pathOfCard(drag.card));
+        this.pendingMove = this.commitOrder(order, title, index).finally(() => { this.pendingMove = null; });
+        this.renderPending = false;
+        return;
+      }
+      if (drop && drag.touch && !drag.moved) {
+        // La pulsación larga ya no puede abrir el menú del sistema: al soltar sin mover, se abre el de la tarjeta.
+        const path = this.pathOfCard(drag.card);
+        const file = this.app.vault.getAbstractFileByPath(path);
+        if (file) this.showCardMenu(null, file, { x: drag.x, y: drag.y });
+      }
+      if (!drop) this.renderPending = true; // se descarta el reordenado visual
+    }
+    if (this.renderPending) {
+      this.renderPending = false;
+      this.renderRecent();
+    }
+  }
+
+  // Alt + flechas: mueve un puesto la tarjeta seleccionada (←/↑ antes, →/↓ después). Devuelve true si la tecla
+  // se ha consumido, es decir, si hay una tarjeta seleccionada y la búsqueda está vacía.
+  moveSelectedCard(e) {
+    const item = this.recentItems[this.selected];
+    if (this.hasQuery || this.inputEl.value || !item?.pinPath) return false;
+    e.preventDefault();
+    if (this.pendingMove) return true; // el movimiento anterior aún se está guardando
+    const paths = this.recentItems.filter((entry) => entry.pinPath).map((entry) => entry.pinPath);
+    const from = paths.indexOf(item.pinPath);
+    const to = from + (e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 1);
+    if (to < 0 || to >= paths.length) return true; // no da la vuelta ni pasa a Recientes
+    paths.splice(to, 0, paths.splice(from, 1)[0]);
+    this.pendingMove = this.commitOrder(paths, item.pinTitle, to).finally(() => { this.pendingMove = null; });
+    return true;
+  }
+
+  // Alt + P: fija la nota seleccionada de «Recientes» (una P suelta se escribiría en el buscador). Pasa al tablero
+  // y la selección queda en la fila que ocupa su lugar, para poder seguir fijando hacia abajo.
+  pinSelectedRecent(e) {
+    const item = this.recentItems[this.selected];
+    if (this.hasQuery || this.inputEl.value || !this.pinsShown || !item?.removePath) return false;
+    e.preventDefault();
+    if (this.pendingMove) return true;
+    const keep = this.selected;
+    this.pendingMove = Promise.resolve(this.plugin.pinFile(item.removePath))
+      // la tarjeta nueva ocupa un puesto antes de las filas: la siguiente fila queda en el índice anterior + 1
+      .then(() => { if (this.recentItems.length) this.select(Math.min(keep + 1, this.recentItems.length - 1)); })
+      .finally(() => { this.pendingMove = null; });
+    return true;
+  }
+
+  // Guarda el orden nuevo; al repintar, la tarjeta movida sigue seleccionada y se anuncia su posición.
+  async commitOrder(paths, title, index) {
+    await this.plugin.reorderPinned(paths);
+    this.select(index);
+    this.announce(STRINGS[this.plugin.getEffectiveLanguage()].cardMoved(title, index + 1, paths.length));
+  }
+
+  announce(text) {
+    this.liveEl?.setText(text);
+  }
+
+  // Menú de una tarjeta (clic derecho): abrir, abrir en pestaña nueva, color y quitar de las fijadas.
+  // `at` es la posición ({ x, y }) cuando no hay un evento de ratón.
+  showCardMenu(event, file, at) {
+    const strings = STRINGS[this.plugin.getEffectiveLanguage()];
+    const entry = this.plugin.settings.pinned.find((item) => item.path === file.path);
+    const menu = new Menu();
+    menu.addItem((item) => item.setTitle(strings.cardOpen).setIcon('file-text').onClick(() => this.openFile(file)));
+    menu.addItem((item) => item.setTitle(strings.cardOpenNewTab).setIcon('file-plus').onClick(() => this.openFile(file, 'tab')));
+    menu.addSeparator();
+    menu.addItem((item) => {
+      item.setTitle(strings.cardColor).setIcon('palette');
+      // Sin submenús (Obsidian antiguo), los colores van directamente en el menú principal.
+      const target = typeof item.setSubmenu === 'function' ? item.setSubmenu() : menu;
+      for (const color of ['', ...PIN_COLORS]) {
+        target.addItem((colorItem) => colorItem
+          .setTitle(strings.pinColors[color || 'none'])
+          .setChecked((entry?.color || '') === color)
+          .onClick(() => this.plugin.setPinColor(file.path, color)));
+      }
+    });
+    menu.addSeparator();
+    menu.addItem((item) => item.setTitle(strings.unpinFromFoyer).setIcon('pin-off').onClick(() => this.plugin.unpinFile(file.path)));
+    if (event) menu.showAtMouseEvent(event);
+    else menu.showAtPosition(at);
+  }
+
+  // Quita del historial la fila `index` de la lista. Al repintar, la selección pasa a la fila que ocupa su lugar.
+  removeRecentAt(index) {
+    const path = this.recentItems[index]?.removePath;
+    if (!path) return;
+    const keep = this.selected;
+    this.plugin.removeFromHistory(path);
+    if (keep >= 0 && this.recentItems.length) this.select(Math.min(keep, this.recentItems.length - 1));
   }
 
   updateRecentTimes() {
@@ -901,7 +1453,9 @@ class HomeView extends ItemView {
     el.setAttribute('aria-selected', 'false');
     list.push({ el, run });
     el.addEventListener('mousemove', () => { if (this.selected !== index) this.select(index); });
-    el.addEventListener('click', (e) => run(Keymap.isModEvent(e)));
+    el.addEventListener('click', (e) => {
+      if (!this.suppressClick) run(Keymap.isModEvent(e));
+    });
     el.addEventListener('auxclick', (e) => { if (e.button === 1) run('tab'); });
     if (file) {
       el.addEventListener('mouseover', (e) => {
@@ -951,10 +1505,16 @@ class HomeView extends ItemView {
     const active = list[this.selected];
     if (active) this.inputEl.setAttribute('aria-activedescendant', active.el.getAttribute('id'));
     else this.inputEl.removeAttribute('aria-activedescendant');
+    // Sin buscador, la opción activa la anuncia el propio listbox, que es quien tiene el foco
+    if (active && this.plugin.settings.showSearch === false) this.recentEl.setAttribute('aria-activedescendant', active.el.getAttribute('id'));
+    else this.recentEl.removeAttribute('aria-activedescendant');
   }
 
   onKeyDown(e) {
     if (e.isComposing) return;
+    if (e.altKey && ARROW_KEYS.has(e.key) && this.moveSelectedCard(e)) return;
+    // Se mira `code` y no `key`: con Alt, en macOS la P escribe otro carácter
+    if (e.altKey && e.code === 'KeyP' && this.pinSelectedRecent(e)) return;
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
@@ -984,6 +1544,12 @@ class HomeView extends ItemView {
         if (item) item.run(Keymap.isModEvent(e));
         break;
       }
+      case 'Delete':
+        // Con la búsqueda vacía, Supr quita de Recientes la fila seleccionada (las fijadas no se quitan así).
+        if (this.inputEl.value || !this.recentItems[this.selected]?.removePath) break;
+        e.preventDefault();
+        this.removeRecentAt(this.selected);
+        break;
       case 'Escape':
         if (this.inputEl.value) {
           e.preventDefault();
@@ -1146,6 +1712,50 @@ class HomeSettingTab extends PluginSettingTab {
         .setDynamicTooltip()
         .onChange((value) => saveResultLimit(value)));
 
+    new Setting(containerEl)
+      .setName(strings.settingsShowGreeting)
+      .setDesc(strings.settingsShowGreetingDescription)
+      .addToggle((toggle) => toggle
+        .setValue(this.plugin.settings.showGreeting)
+        .onChange((value) => this.plugin.updateSetting('showGreeting', value)));
+
+    new Setting(containerEl)
+      .setName(strings.settingsShowSearch)
+      .setDesc(strings.settingsShowSearchDescription)
+      .addToggle((toggle) => toggle
+        .setValue(this.plugin.settings.showSearch)
+        .onChange((value) => this.plugin.updateSetting('showSearch', value)));
+
+    new Setting(containerEl)
+      .setName(strings.settingsShowPinned)
+      .setDesc(strings.settingsShowPinnedDescription)
+      .addToggle((toggle) => toggle
+        .setValue(this.plugin.settings.showPinned)
+        .onChange((value) => this.plugin.updateSetting('showPinned', value)));
+
+    new Setting(containerEl)
+      .setName(strings.settingsShowRecent)
+      .setDesc(strings.settingsShowRecentDescription)
+      .addToggle((toggle) => toggle
+        .setValue(this.plugin.settings.showRecent)
+        .onChange((value) => this.plugin.updateSetting('showRecent', value)));
+
+    new Setting(containerEl)
+      .setName(strings.settingsLayout)
+      .setDesc(strings.settingsLayoutDescription)
+      .addDropdown((dropdown) => dropdown
+        .addOption('stacked', strings.layoutStacked)
+        .addOption('columns', strings.layoutColumns)
+        .setValue(this.plugin.settings.layout)
+        .onChange((value) => this.plugin.updateSetting('layout', value)));
+
+    new Setting(containerEl)
+      .setName(strings.settingsClearHistory)
+      .setDesc(strings.settingsClearHistoryDescription)
+      .addButton((button) => button
+        .setButtonText(strings.clearHistoryButton)
+        .onClick(() => this.plugin.clearHistory()));
+
     const applyImage = async (file) => {
       await this.plugin.updateSetting('heroImagePath', file.path);
       new Notice(STRINGS[this.plugin.getEffectiveLanguage()].imageSelected);
@@ -1211,7 +1821,7 @@ class HomeSettingTab extends PluginSettingTab {
     const mock = info.createDiv({ cls: 'foyer-settings__mock', attr: { 'aria-hidden': 'true' } });
     const slot = mock.createDiv({ cls: 'foyer-settings__slot' });
     const spark = slot.createDiv({ cls: 'foyer-settings__spark' });
-    spark.appendChild(buildSpark());
+    spark.appendChild(buildMark());
     const resolved = resolveHeroImage(this.app.vault, this.plugin.settings.heroImagePath, TFile);
     if (resolved) {
       const image = slot.createEl('img', { cls: 'foyer-settings__image', attr: { src: resolved.src, alt: '' } });
@@ -1262,18 +1872,26 @@ module.exports = class FoyerPlugin extends Plugin {
     this.saveHistorySoon = debounce(() => saveOpenHistory(this.app, this.openHistory), 2000, true);
     this.register(() => this.saveHistorySoon.run?.());
 
+    // Notas que el usuario quitó de «Recientes» y que el respaldo de Obsidian no debe volver a mostrar (solo en memoria).
+    this.dismissedRecent = new Set();
+
     // Historial de aperturas: se registra antes que la vista para que ya esté al día al renderizar.
     const ws = this.app.workspace;
     this.registerEvent(ws.on('file-open', (file) => {
       if (!(file instanceof TFile)) return;
+      this.dismissedRecent.delete(file.path);
       recordOpen(this.openHistory, file.path, Date.now());
       this.saveHistorySoon();
     }));
-    this.registerEvent(this.app.vault.on('rename', (file, oldPath) => {
+    this.registerEvent(this.app.vault.on('rename', async (file, oldPath) => {
       if (renameInHistory(this.openHistory, oldPath, file.path)) this.saveHistorySoon();
+      const pinned = renameInPinned(this.settings.pinned, oldPath, file.path);
+      if (pinned) await this.updateSetting('pinned', pinned);
     }));
-    this.registerEvent(this.app.vault.on('delete', (file) => {
+    this.registerEvent(this.app.vault.on('delete', async (file) => {
       if (deleteFromHistory(this.openHistory, file.path)) this.saveHistorySoon();
+      const pinned = deleteFromPinned(this.settings.pinned, file.path);
+      if (pinned) await this.updateSetting('pinned', pinned);
     }));
 
     this.registerView(VIEW_TYPE, (leaf) => new HomeView(leaf, this));
@@ -1283,6 +1901,33 @@ module.exports = class FoyerPlugin extends Plugin {
 
     this.addRibbonIcon('home', STRINGS[this.getEffectiveLanguage()].openHome, () => this.openHome());
     this.addCommand({ id: 'open', name: STRINGS[this.getEffectiveLanguage()].openHome, callback: () => this.openHome() });
+    // Cada comando de fijado solo aparece cuando se puede aplicar a la nota activa.
+    const pinCommand = (id, name, applies, run) => this.addCommand({
+      id,
+      name,
+      checkCallback: (checking) => {
+        const file = this.app.workspace.getActiveFile();
+        if (!isListed(file) || !applies(this.isPinned(file.path))) return false;
+        if (!checking) run(file.path);
+        return true;
+      },
+    });
+    const strings = STRINGS[this.getEffectiveLanguage()];
+    pinCommand('pin-current', strings.commandPinCurrent, (pinned) => !pinned, (path) => this.pinFile(path));
+    pinCommand('unpin-current', strings.commandUnpinCurrent, (pinned) => pinned, (path) => this.unpinFile(path));
+    this.addCommand({ id: 'clear-history', name: strings.commandClearHistory, callback: () => this.clearHistory() });
+    this.addCommand({ id: 'focus-search', name: strings.commandFocusSearch, callback: () => this.focusSearch() });
+    this.addCommand({ id: 'open-new-tab', name: strings.commandOpenNewTab, callback: () => this.openHomeInNewTab() });
+    // Menú contextual de archivos: una sola entrada, para fijar o para quitar.
+    this.registerEvent(ws.on('file-menu', (menu, file) => {
+      if (!isListed(file)) return;
+      const pinned = this.isPinned(file.path);
+      const current = STRINGS[this.getEffectiveLanguage()];
+      menu.addItem((item) => item
+        .setTitle(pinned ? current.unpinFromFoyer : current.pinToFoyer)
+        .setIcon(pinned ? 'pin-off' : 'pin')
+        .onClick(() => (pinned ? this.unpinFile(file.path) : this.pinFile(file.path))));
+    }));
 
     this.app.workspace.onLayoutReady(async () => {
       // El archivo activo restaurado al arrancar cuenta como abierto ahora.
@@ -1305,6 +1950,58 @@ module.exports = class FoyerPlugin extends Plugin {
 
   getEffectiveLanguage() {
     return resolveLanguage(this.settings.language, getLanguage());
+  }
+
+  // Vuelve a pintar cada vista de Foyer abierta, conservando su búsqueda.
+  refreshViews() {
+    for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE)) leaf.view?.refreshSettings?.();
+  }
+
+  // Quita una nota de «Recientes» (solo la entrada del historial de este dispositivo, nunca el archivo).
+  removeFromHistory(path) {
+    const had = path in this.openHistory;
+    delete this.openHistory[path];
+    this.dismissedRecent.add(path);
+    if (had) this.saveHistorySoon();
+    this.refreshViews();
+    return had;
+  }
+
+  // Vacía «Recientes» en este dispositivo. Las notas fijadas y los archivos no se tocan.
+  clearHistory() {
+    for (const path of this.app.workspace.getLastOpenFiles?.() ?? []) this.dismissedRecent.add(path);
+    for (const path of Object.keys(this.openHistory)) delete this.openHistory[path];
+    saveOpenHistory(this.app, this.openHistory);
+    new Notice(STRINGS[this.getEffectiveLanguage()].historyCleared);
+    this.refreshViews();
+  }
+
+  isPinned(path) {
+    return this.settings.pinned.some((entry) => entry.path === path);
+  }
+
+  async pinFile(path) {
+    if (this.isPinned(path)) return;
+    await this.updateSetting('pinned', [...this.settings.pinned, { path, color: '' }]);
+  }
+
+  async unpinFile(path) {
+    if (!this.isPinned(path)) return;
+    await this.updateSetting('pinned', this.settings.pinned.filter((entry) => entry.path !== path));
+  }
+
+  // Color de una nota fijada: uno de PIN_COLORS o '' (sin color). Lo demás se ignora.
+  async setPinColor(path, color) {
+    if (color !== '' && !PIN_COLORS.includes(color)) return;
+    const entry = this.settings.pinned.find((item) => item.path === path);
+    if (!entry || entry.color === color) return;
+    await this.updateSetting('pinned', this.settings.pinned.map((item) => (item === entry ? { ...item, color } : item)));
+  }
+
+  // Guarda el orden nuevo de las fijadas (ver reorderPinned). Solo se guarda el orden, no posiciones.
+  async reorderPinned(order) {
+    const pinned = reorderPinned(this.settings.pinned, order);
+    if (pinned) await this.updateSetting('pinned', pinned);
   }
 
   async updateSetting(key, value) {
@@ -1331,6 +2028,29 @@ module.exports = class FoyerPlugin extends Plugin {
       leaf = recent && recent.view?.getViewType() === 'empty' ? recent : ws.getLeaf('tab');
       await leaf.setViewState({ type: VIEW_TYPE, active: true });
     }
+    await ws.revealLeaf(leaf);
+    ws.setActiveLeaf(leaf, { focus: true });
+  }
+
+  // Pone el cursor en la búsqueda de Foyer; si Foyer no es la vista activa, la abre o la trae al frente antes.
+  async focusSearch() {
+    const ws = this.app.workspace;
+    if (!ws.getActiveViewOfType(HomeView)) await this.openHome();
+    const view = ws.getActiveViewOfType(HomeView);
+    if (!view) return;
+    // Con el buscador oculto no se fuerza su visibilidad: se avisa de cómo volver a mostrarlo
+    if (this.settings.showSearch === false) {
+      new Notice(STRINGS[this.getEffectiveLanguage()].searchHiddenNotice);
+      return;
+    }
+    view.inputEl?.focus();
+  }
+
+  // Abre otro Foyer en una pestaña nueva, aunque ya haya uno abierto (openHome reutiliza el existente).
+  async openHomeInNewTab() {
+    const ws = this.app.workspace;
+    const leaf = ws.getLeaf('tab');
+    await leaf.setViewState({ type: VIEW_TYPE, active: true });
     await ws.revealLeaf(leaf);
     ws.setActiveLeaf(leaf, { focus: true });
   }

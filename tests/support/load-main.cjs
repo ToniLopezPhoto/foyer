@@ -37,7 +37,7 @@ function createElement(options = {}) {
     text: '',
     value: '',
     hidden: false,
-    style: {},
+    style: { setProperty(name, value) { this[name] = String(value); } },
     children: [],
     attributes: {},
     listeners: {},
@@ -50,9 +50,19 @@ function createElement(options = {}) {
     getAttribute(name) { return name in this.attributes ? this.attributes[name] : null; },
     removeAttribute(name) { delete this.attributes[name]; },
     appendChild(child) { this.children.push(child); return child; },
+    insertBefore(child, reference) {
+      const from = this.children.indexOf(child);
+      if (from !== -1) this.children.splice(from, 1);
+      const at = reference ? this.children.indexOf(reference) : this.children.length;
+      this.children.splice(at, 0, child);
+      return child;
+    },
+    setPointerCapture(id) { this.capturedPointer = id; },
+    releasePointerCapture() { this.capturedPointer = null; },
     addEventListener(type, handler) { (this.listeners[type] ||= []).push(handler); },
     dispatch(type, event = {}) { for (const handler of this.listeners[type] || []) handler(event); },
     scrollIntoView() {},
+    focus() { this.focusCount = (this.focusCount || 0) + 1; },
     empty() { this.children = []; this.text = ''; },
   };
   if (options.cls) el.addClass(...options.cls.split(' '));
@@ -93,7 +103,7 @@ function createSettingComponent(type) {
     onChange(handler) { component.changeHandler = handler; return component; },
     setLimits(min, max, step) { component.limits = [min, max, step]; return component; },
     setDynamicTooltip() { component.dynamicTooltip = true; return component; },
-    addOption() { return component; },
+    addOption(value, label) { (component.options ||= []).push([value, label]); return component; },
     setButtonText() { return component; },
     setCta() { return component; },
     onClick(handler) { component.clickHandler = handler; return component; },
@@ -124,8 +134,11 @@ function subsequenceFuzzy(query) {
 // flushDebounced() runs the last pending call of each debouncer. fuzzy replaces prepareFuzzySearch.
 // With animationFrames, window.requestAnimationFrame exists and its callbacks stay in frames.queue
 // until frames.flush() is called.
-function loadMain({ deferDebounce = false, fuzzy = null, animationFrames = false } = {}) {
+// With submenus: false, menu items have no setSubmenu() (older Obsidian). `menus` records every Menu created.
+// With reducedMotion, window.matchMedia('(prefers-reduced-motion: reduce)') matches.
+function loadMain({ deferDebounce = false, fuzzy = null, animationFrames = false, submenus = true, reducedMotion = false } = {}) {
   const notices = [];
+  const menus = [];
   const clock = { hour: 9, date: 'lunes, 1 de enero' };
   const timers = { intervals: [], timeouts: [] };
   const debouncers = [];
@@ -159,7 +172,36 @@ function loadMain({ deferDebounce = false, fuzzy = null, animationFrames = false
     addSlider(callback) { return this.addComponent('slider', callback); }
   }
 
+  // Menu: records its items (and submenus) and where it was shown; clicking is done by the test.
+  class Menu {
+    constructor() {
+      this.items = [];
+      menus.push(this);
+    }
+
+    addItem(callback) {
+      const item = {
+        title: '',
+        icon: '',
+        checked: false,
+        setTitle(title) { item.title = title; return item; },
+        setIcon(icon) { item.icon = icon; return item; },
+        setChecked(checked) { item.checked = Boolean(checked); return item; },
+        onClick(handler) { item.click = handler; return item; },
+      };
+      if (submenus) item.setSubmenu = () => { item.submenu = new Menu(); menus.pop(); return item.submenu; };
+      this.items.push(item);
+      callback(item);
+      return this;
+    }
+
+    addSeparator() { this.items.push({ separator: true }); return this; }
+    showAtMouseEvent(event) { this.shownAt = { event }; }
+    showAtPosition(position) { this.shownAt = { position }; }
+  }
+
   const obsidian = {
+    Menu,
     Plugin: class {},
     PluginSettingTab: class {
       constructor(app, plugin) {
@@ -235,6 +277,7 @@ function loadMain({ deferDebounce = false, fuzzy = null, animationFrames = false
       if (timers.timeouts[id - 1]) timers.timeouts[id - 1].cancelled = true;
     },
   };
+  window.matchMedia = (query) => ({ matches: reducedMotion && query.includes('prefers-reduced-motion') });
   if (animationFrames) {
     window.requestAnimationFrame = (fn) => {
       const id = frames.nextId++;
@@ -266,7 +309,7 @@ function loadMain({ deferDebounce = false, fuzzy = null, animationFrames = false
   );
   const { HomeView, HomeSettingTab, FoyerPlugin, settingsModule } = context.module.exports;
   const flushDebounced = () => { for (const deferred of debouncers) deferred.run(); };
-  return { HomeView, HomeSettingTab, FoyerPlugin, settingsModule, TFile, TFolder, clock, notices, timers, frames, settingsLog, flushDebounced };
+  return { HomeView, HomeSettingTab, FoyerPlugin, settingsModule, TFile, TFolder, clock, notices, menus, timers, frames, settingsLog, flushDebounced };
 }
 
 module.exports = { createElement, loadMain, subsequenceFuzzy };

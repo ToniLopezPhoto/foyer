@@ -124,7 +124,9 @@ function createViewFixture(settings) {
   return { main, view, plugin };
 }
 
-const recentRows = (view) => view.recentEl.children.filter((el) => el.classes.has('foyer__row'));
+const recentRows = (view) => view.recentEl.children
+  .flatMap((el) => (el.classes.has('foyer__recent-group') ? el.children : [el]))
+  .filter((el) => el.classes.has('foyer__row'));
 const resultRows = (view) => view.resultsEl.children
   .filter((el) => el.classes.has('foyer__item') && !el.classes.has('foyer__item--action'));
 

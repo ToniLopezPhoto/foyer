@@ -49,3 +49,15 @@ test('the 30-second interval refreshes the date and greeting without re-renderin
   assert.equal(view.dateEl.text, 'martes, 2 de enero');
   assert.equal(renders, 0);
 });
+
+test('without a hero image the header shows the Foyer archway mark in the accent color', async () => {
+  const { view } = await openView();
+  assert.equal(view.sparkEl.hidden, false);
+  const [svg] = view.sparkEl.children;
+  assert.equal(svg.attributes.viewBox, '40 40 176 168');
+  assert.equal(svg.attributes['aria-hidden'], 'true');
+  const shapes = svg.children;
+  assert.equal(shapes.length, 4, 'outer arch, door, inner light and threshold');
+  assert.ok(shapes.every((shape) => typeof shape.attributes.d === 'string'), 'every shape is a path');
+  assert.ok(shapes.every((shape) => !('x1' in shape.attributes)), 'no spark rays');
+});
